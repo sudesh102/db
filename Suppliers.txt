@@ -1,0 +1,178 @@
+Suppliers (sid: integer, sname: string, address: string)
+Parts (pid: integer, pname: string, color: string)
+Catalog (sid: integer, pid: integer, cost: real)
+Write SQL queries to perform following tasks.
+
+-- Create Suppliers Table
+CREATE TABLE Suppliers (
+    sid INT PRIMARY KEY,
+    sname VARCHAR(50),
+    address VARCHAR(100)
+);
+
+-- Create Parts Table
+CREATE TABLE Parts (
+    pid INT PRIMARY KEY,
+    pname VARCHAR(50),
+    color VARCHAR(20)
+);
+
+-- Create Catalog Table
+CREATE TABLE Catalog (
+    sid INT,
+    pid INT,
+    cost REAL,
+    PRIMARY KEY (sid, pid),
+    FOREIGN KEY (sid) REFERENCES Suppliers(sid),
+    FOREIGN KEY (pid) REFERENCES Parts(pid)
+);
+
+-- Insert Sample Data into Suppliers
+INSERT INTO Suppliers (sid, sname, address) VALUES
+(1, 'Acme Widget Suppliers', '123 Widget St'),
+(2, 'Tech Supplies Inc.', '456 Tech Rd'),
+(3, 'Gizmo Traders', '789 Gizmo Ave');
+
+-- Insert Sample Data into Parts
+INSERT INTO Parts (pid, pname, color) VALUES
+(101, 'Widget A', 'Red'),
+(102, 'Widget B', 'Green'),
+(103, 'Gizmo X', 'Blue');
+
+-- Insert Sample Data into Catalog
+INSERT INTO Catalog (sid, pid, cost) VALUES
+(1, 101, 10.5),
+(1, 102, 12.0),
+(2, 101, 11.0),
+(3, 103, 15.0);
+
+1] Find the pnames of parts for which there is some supplier.
+
+SELECT DISTINCT p.pname
+FROM Parts p
+JOIN Catalog c ON p.pid = c.pid;
+
+2] Find the sids of suppliers who charge more for some part than the average cost of that part (averaged over all the suppliers who supply that part).
+
+SELECT c.sid
+FROM Catalog c
+WHERE c.cost > (
+    SELECT AVG(cost)
+    FROM Catalog
+    WHERE pid = c.pid
+);
+
+3] Find the pnames of parts supplied by Acme Widget Suppliers and by no one else.
+
+SELECT p.pname
+FROM Parts p
+WHERE p.pid IN (
+    SELECT c.pid
+    FROM Catalog c
+    WHERE c.sid = 1
+)
+AND p.pid NOT IN (
+    SELECT c.pid
+    FROM Catalog c
+    WHERE c.sid != 1
+);
+
+4] Find the sids of suppliers who supply a red part or a green part
+
+SELECT DISTINCT c.sid
+FROM Catalog c
+JOIN Parts p ON c.pid = p.pid
+WHERE p.color IN ('Red', 'Green');
+
+5] While updating information of partst, store information of deleted parts who have not at least one supplier in separate table NonSupplyParts.
+
+-- Create the NonSupplyParts table
+CREATE TABLE NonSupplyParts (
+    pid INTEGER PRIMARY KEY,
+    pname VARCHAR(50),
+    color VARCHAR(20)
+);
+
+-- Trigger to insert deleted parts with no suppliers into NonSupplyParts
+CREATE TRIGGER store_deleted_parts
+AFTER DELETE ON Parts
+FOR EACH ROW
+BEGIN
+    -- Insert into NonSupplyParts if part has no suppliers
+    INSERT INTO NonSupplyParts (pid, pname, color)
+    SELECT OLD.pid, OLD.pname, OLD.color
+    WHERE NOT EXISTS (
+        SELECT 1 FROM Catalog WHERE pid = OLD.pid
+    );
+END;
+
+6] Create stored procedure to remove some cost of catlog (i.e. user specified) from specific supplier (i.e. user specified) only if that cost greater then available otherwise display error message.
+
+DELIMITER $$
+
+CREATE PROCEDURE RemoveCostFromCatalog(IN sid_param INT, IN pid_param INT, IN cost_reduction REAL)
+BEGIN
+    DECLARE current_cost REAL;
+    
+    -- Get the current cost for the part-supplier combination
+    SELECT cost INTO current_cost
+    FROM Catalog
+    WHERE sid = sid_param AND pid = pid_param;
+    
+    -- Check if the cost reduction is valid
+    IF current_cost > cost_reduction THEN
+        -- Apply the cost reduction
+        UPDATE Catalog
+        SET cost = current_cost - cost_reduction
+        WHERE sid = sid_param AND pid = pid_param;
+    ELSE
+        -- Display an error message
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Error: Cost reduction is greater than the available cost';
+    END IF;
+END $$
+
+DELIMITER ;
+
+
+
+1] Find the snames of suppliers who supply every part.
+
+SELECT s.sname
+FROM Suppliers s
+WHERE NOT EXISTS (
+    SELECT p.pid
+    FROM Parts p
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Catalog c
+        WHERE c.sid = s.sid AND c.pid = p.pid
+    )
+);
+
+2] For each part, Find the sname of the supplier who charges the most for that part.
+
+SELECT p.pname, s.sname
+FROM Parts p
+JOIN Catalog c ON p.pid = c.pid
+JOIN Suppliers s ON c.sid = s.sid
+WHERE c.cost = (
+    SELECT MAX(c2.cost)
+    FROM Catalog c2
+    WHERE c2.pid = p.pid
+);
+
+
+1] Find the snames of suppliers who supply every part.
+
+SELECT s.sname
+FROM Suppliers s
+WHERE NOT EXISTS (
+    SELECT p.pid
+    FROM Parts p
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Catalog c
+        WHERE c.sid = s.sid AND c.pid = p.pid
+    )
+);
+

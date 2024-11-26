@@ -1,0 +1,170 @@
+//exp 25
+
+Table Creation
+sql
+Copy code
+-- Create Flight Table
+CREATE TABLE Flight (
+    fino INT PRIMARY KEY,
+    from_city VARCHAR(100),
+    to_city VARCHAR(100),
+    distance INT,
+    departs TIME,
+    arrives TIME,
+    price DECIMAL(10, 2),
+    aid INT,
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Aircraft Table
+CREATE TABLE Aircraft (
+    aid INT PRIMARY KEY,
+    aname VARCHAR(100),
+    cruisingrange INT
+);
+
+-- Create Certified Table
+CREATE TABLE Certified (
+    eid INT,
+    aid INT,
+    PRIMARY KEY (eid, aid),
+    FOREIGN KEY (eid) REFERENCES Employees(eid),
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Employees Table
+CREATE TABLE Employees (
+    eid INT PRIMARY KEY,
+    ename VARCHAR(100),
+    salary DECIMAL(10, 2) CHECK (salary > 500) -- Constraint for salary
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Aircraft table
+INSERT INTO Aircraft (aid, aname, cruisingrange)
+VALUES (1, 'Boeing 747', 8500),
+       (2, 'Airbus A320', 6000),
+       (3, 'Sukhoi Superjet', 4000),
+       (4, 'Boeing 777', 8500),
+       (5, 'Spitfire', 2000),
+       (6, 'Sukhoi 30', 4000);
+
+-- Insert data into Employees table
+INSERT INTO Employees (eid, ename, salary)
+VALUES (101, 'John', 25000),
+       (102, 'Jane', 15000),
+       (103, 'Bob', 20000),
+       (104, 'Alice', 8000),
+       (105, 'XYZ', 5000),
+       (106, 'Charlie', 12000);
+
+-- Insert data into Certified table
+INSERT INTO Certified (eid, aid)
+VALUES (101, 1),
+       (102, 2),
+       (103, 1),
+       (104, 3),
+       (105, 1),
+       (106, 2);
+
+-- Insert data into Flight table
+INSERT INTO Flight (fino, from_city, to_city, distance, departs, arrives, price, aid)
+VALUES (1, 'Pune', 'Delhi', 1500, '10:00', '12:00', 5000.00, 1),
+       (2, 'Delhi', 'Pune', 1500, '14:00', '16:00', 4500.00, 2),
+       (3, 'Pune', 'Mumbai', 500, '09:00', '10:00', 2000.00, 3),
+       (4, 'Delhi', 'Bangalore', 2000, '11:00', '13:30', 6000.00, 4),
+       (5, 'Pune', 'Chennai', 800, '15:00', '17:30', 3500.00, 5);
+Queries
+Find the name of aircraft such that all pilots certified to operate them have salaries more than 20,000.
+
+sql
+Copy code
+SELECT a.aname
+FROM Aircraft a
+JOIN Certified c ON a.aid = c.aid
+JOIN Employees e ON c.eid = e.eid
+GROUP BY a.aname
+HAVING MIN(e.salary) > 20000;
+Set the name of employee "XYZ" that is identified by '0151'.
+
+sql
+Copy code
+UPDATE Employees
+SET ename = 'NewXYZ'
+WHERE eid = '0151'; -- Adjusted for the example since '0151' does not match our sample data.
+Find aircraft whose name starts with 's' and has at least 3 characters.
+
+sql
+Copy code
+SELECT *
+FROM Aircraft
+WHERE aname LIKE 'S%' AND LENGTH(aname) >= 3;
+For all aircraft with cruising range over 1000 miles find the names of the aircraft and average salary of all pilots certified for this aircraft.
+
+sql
+Copy code
+SELECT a.aname, AVG(e.salary) AS average_salary
+FROM Aircraft a
+JOIN Certified c ON a.aid = c.aid
+JOIN Employees e ON c.eid = e.eid
+WHERE a.cruisingrange > 1000
+GROUP BY a.aname;
+Find the aids of all aircraft that can be used on routes from Pune to Delhi.
+
+sql
+Copy code
+SELECT DISTINCT aid
+FROM Flight
+WHERE from_city = 'Pune' AND to_city = 'Delhi';
+Display in alphabetical order all employees who have a salary greater than 10,000.
+
+sql
+Copy code
+SELECT *
+FROM Employees
+WHERE salary > 10000
+ORDER BY ename ASC;
+Identify the routes that can be piloted by every pilot who makes more than 10,000.
+
+sql
+Copy code
+SELECT DISTINCT f.from_city, f.to_city
+FROM Flight f
+WHERE NOT EXISTS (
+    SELECT *
+    FROM Employees e
+    JOIN Certified c ON e.eid = c.eid
+    WHERE e.salary > 10000
+    AND NOT EXISTS (
+        SELECT *
+        FROM Flight f2
+        WHERE f2.from_city = f.from_city AND f2.to_city = f.to_city AND f2.aid = c.aid
+    )
+);
+Find the average cruising range of each aircraft and filter those having an average cruising range of more than 2000 miles.
+
+sql
+Copy code
+SELECT AVG(cruisingrange) AS average_cruising_range
+FROM Aircraft
+GROUP BY aid
+HAVING AVG(cruisingrange) > 2000;
+Create a view for aircraft with flight details.
+
+sql
+Copy code
+CREATE VIEW AircraftFlightDetails AS
+SELECT a.aname, f.from_city, f.to_city, f.distance, f.price
+FROM Aircraft a
+JOIN Flight f ON a.aid = f.aid;
+Create stored procedure to reduce cruising range of aircraft (user-specified) for specific aircraft (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceCruisingRange(IN aircraft_id INT, IN reduction_amount INT)
+BEGIN
+    UPDATE Aircraft
+    SET cruisingrange = cruisingrange - reduction_amount
+    WHERE aid = aircraft_id;
+END;

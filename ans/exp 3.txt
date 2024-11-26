@@ -1,0 +1,196 @@
+//exp 3
+1. Create the Tables:
+sql
+Copy code
+-- Create Department table
+CREATE TABLE Department (
+    deptid INT PRIMARY KEY,
+    dname VARCHAR(255),
+    no_of_students INT,
+    no_of_staffs INT
+);
+
+-- Create Student table
+CREATE TABLE Student (
+    rollno INT PRIMARY KEY,
+    sname VARCHAR(255),
+    address VARCHAR(255)
+);
+
+-- Create Enrolls table
+CREATE TABLE Enrolls (
+    rollno INT,
+    class VARCHAR(255),
+    no_of_stu INT,
+    PRIMARY KEY (rollno, class),
+    FOREIGN KEY (rollno) REFERENCES Student(rollno)
+);
+
+-- Create Classes table
+CREATE TABLE Classes (
+    class VARCHAR(255) PRIMARY KEY,
+    no_of_stu INT
+);
+
+-- Create Professor table with a constraint that salary should be greater than 500
+CREATE TABLE Professor (
+    pid INT PRIMARY KEY,
+    pname VARCHAR(255),
+    salary DECIMAL(10, 2) CHECK (salary > 500)
+);
+
+-- Create Teaches table
+CREATE TABLE Teaches (
+    pid INT,
+    class VARCHAR(255),
+    subject VARCHAR(255),
+    FOREIGN KEY (pid) REFERENCES Professor(pid),
+    FOREIGN KEY (class) REFERENCES Classes(class)
+);
+
+-- Create Works_at table
+CREATE TABLE Works_at (
+    pid INT,
+    deptid INT,
+    FOREIGN KEY (pid) REFERENCES Professor(pid),
+    FOREIGN KEY (deptid) REFERENCES Department(deptid)
+);
+2. Insert Sample Values:
+sql
+Copy code
+-- Insert values into Department table
+INSERT INTO Department (deptid, dname, no_of_students, no_of_staffs)
+VALUES 
+(1, 'Computer Science', 150, 10),
+(2, 'Mathematics', 120, 8),
+(3, 'Physics', 100, 7);
+
+-- Insert values into Student table
+INSERT INTO Student (rollno, sname, address)
+VALUES 
+(1, 'John Doe', 'Pune'),
+(2, 'Jane Smith', 'Pune'),
+(3, 'Emily Johnson', 'Mumbai'),
+(4, 'Michael Lee', 'Delhi');
+
+-- Insert values into Enrolls table
+INSERT INTO Enrolls (rollno, class, no_of_stu)
+VALUES 
+(1, 'T.E.', 50),
+(2, 'S.E.', 40),
+(3, 'F.E.', 60);
+
+-- Insert values into Classes table
+INSERT INTO Classes (class, no_of_stu)
+VALUES 
+('T.E.', 50),
+('S.E.', 40),
+('F.E.', 60);
+
+-- Insert values into Professor table
+INSERT INTO Professor (pid, pname, salary)
+VALUES 
+(1, 'Victor Hugo', 800),
+(2, 'Vaibhav Sharma', 900),
+(3, 'Michael Faraday', 850),
+(4, 'Vikas Patil', 950);
+
+-- Insert values into Teaches table
+INSERT INTO Teaches (pid, class, subject)
+VALUES 
+(1, 'T.E.', 'Maths'),
+(2, 'S.E.', 'Physics'),
+(3, 'F.E.', 'Chemistry'),
+(4, 'T.E.', 'Maths');
+
+-- Insert values into Works_at table
+INSERT INTO Works_at (pid, deptid)
+VALUES 
+(1, 2),
+(2, 3),
+(3, 1),
+(4, 2);
+3. Queries:
+Display the name of the teacher who teaches the subject "Maths".
+
+sql
+Copy code
+SELECT p.pname
+FROM Professor p
+JOIN Teaches t ON p.pid = t.pid
+WHERE t.subject = 'Maths';
+Display details of the professor whose name starts with 'V' and contains at least 3 characters.
+
+sql
+Copy code
+SELECT *
+FROM Professor
+WHERE pname LIKE 'V%' AND LENGTH(pname) >= 3;
+Display the average salary of professors in each department.
+
+sql
+Copy code
+SELECT d.dname, AVG(p.salary) AS avg_salary
+FROM Department d
+JOIN Works_at w ON d.deptid = w.deptid
+JOIN Professor p ON w.pid = p.pid
+GROUP BY d.dname;
+Display student names whose address is Pune and roll number is between 1 and 30.
+
+sql
+Copy code
+SELECT sname
+FROM Student
+WHERE address = 'Pune' AND rollno BETWEEN 1 AND 30;
+Display the name of the professor taking the maximum salary and also display the subject they teach.
+
+sql
+Copy code
+SELECT p.pname, t.subject
+FROM Professor p
+JOIN Teaches t ON p.pid = t.pid
+WHERE p.salary = (SELECT MAX(salary) FROM Professor);
+Display details of students in ascending order by their name.
+
+sql
+Copy code
+SELECT *
+FROM Student
+ORDER BY sname ASC;
+Update the number of students in class T.E. to 70.
+
+sql
+Copy code
+UPDATE Classes
+SET no_of_stu = 70
+WHERE class = 'T.E.';
+Find the average number of students in each department, and display departments with an average number of students greater than 100.
+
+sql
+Copy code
+SELECT d.dname, AVG(c.no_of_stu) AS avg_students
+FROM Department d
+JOIN Classes c ON d.deptid = c.class
+GROUP BY d.dname
+HAVING AVG(c.no_of_stu) > 100;
+Create a view of all professor details in one view.
+
+sql
+Copy code
+CREATE VIEW ProfessorDetails AS
+SELECT p.pid, p.pname, p.salary, d.dname
+FROM Professor p
+JOIN Works_at w ON p.pid = w.pid
+JOIN Department d ON w.deptid = d.deptid;
+Create a stored procedure to remove a specified number of students from a specific department.
+
+sql
+Copy code
+DELIMITER //
+CREATE PROCEDURE RemoveStudents(IN deptID INT, IN numStudents INT)
+BEGIN
+   UPDATE Department
+   SET no_of_students = no_of_students - numStudents
+   WHERE deptid = deptID;
+END //
+DELIMITER ;

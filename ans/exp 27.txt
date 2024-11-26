@@ -1,0 +1,175 @@
+//exp 27
+
+Table Creation
+sql
+Copy code
+-- Create Flight Table
+CREATE TABLE Flight (
+    fino INT PRIMARY KEY,
+    flight_from VARCHAR(100),
+    flight_to VARCHAR(100),
+    distance INT,
+    departs TIME,
+    arrives TIME,
+    price DECIMAL(10, 2),
+    aid INT,
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Aircraft Table
+CREATE TABLE Aircraft (
+    aid INT PRIMARY KEY,
+    aname VARCHAR(100),
+    cruisingrange INT
+);
+
+-- Create Certified Table
+CREATE TABLE Certified (
+    eid INT,
+    aid INT,
+    PRIMARY KEY (eid, aid),
+    FOREIGN KEY (eid) REFERENCES Employees(eid),
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Employees Table
+CREATE TABLE Employees (
+    eid INT PRIMARY KEY,
+    ename VARCHAR(100),
+    salary DECIMAL(10, 2) CHECK (salary > 500) -- Constraint for salary
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Aircraft table
+INSERT INTO Aircraft (aid, aname, cruisingrange)
+VALUES (1, 'Boeing 747', 8000),
+       (2, 'Airbus A380', 9000),
+       (3, 'Boeing 737', 3000),
+       (4, 'Cessna 172', 1500),
+       (5, 'Gulfstream G550', 6000);
+
+-- Insert data into Employees table
+INSERT INTO Employees (eid, ename, salary)
+VALUES (101, 'Alice', 12000),
+       (102, 'Bob', 9500),
+       (103, 'Charlie', 15000),
+       (104, 'David', 4500), -- This entry is invalid for the salary constraint
+       (105, 'Eve', 7000);
+
+-- Insert data into Certified table
+INSERT INTO Certified (eid, aid)
+VALUES (101, 1), -- Alice can fly Boeing 747
+       (101, 2), -- Alice can fly Airbus A380
+       (102, 1), -- Bob can fly Boeing 747
+       (103, 2), -- Charlie can fly Airbus A380
+       (103, 3), -- Charlie can fly Boeing 737
+       (103, 4), -- Charlie can fly Cessna 172
+       (101, 3); -- Alice can fly Boeing 737
+
+-- Insert data into Flight table
+INSERT INTO Flight (fino, flight_from, flight_to, distance, departs, arrives, price, aid)
+VALUES (201, 'Mumbai', 'Goa', 440, '10:00:00', '11:00:00', 5000.00, 1),
+       (202, 'Pune', 'Delhi', 1500, '12:00:00', '14:30:00', 12000.00, 2),
+       (203, 'Bangalore', 'Chennai', 350, '15:00:00', '16:00:00', 2500.00, 3),
+       (204, 'Delhi', 'Mumbai', 1400, '17:00:00', '19:00:00', 8000.00, 2),
+       (205, 'Pune', 'Delhi', 1500, '08:00:00', '10:30:00', 10000.00, 3);
+Queries
+Identify the routes that can be piloted by every pilot who makes more than 10000.
+
+sql
+Copy code
+SELECT DISTINCT f.flight_from, f.flight_to
+FROM Flight f
+WHERE f.aid IN (
+    SELECT c.aid
+    FROM Certified c
+    JOIN Employees e ON c.eid = e.eid
+    WHERE e.salary > 10000
+    GROUP BY c.aid
+    HAVING COUNT(DISTINCT e.eid) = (SELECT COUNT(*) FROM Employees WHERE salary > 10000)
+);
+Print the names of pilots who can operate planes with cruising range greater than 2000 miles but are not certified on any Boeing aircraft.
+
+sql
+Copy code
+SELECT e.ename
+FROM Employees e
+WHERE e.eid NOT IN (
+    SELECT c.eid
+    FROM Certified c
+    JOIN Aircraft a ON c.aid = a.aid
+    WHERE a.aname LIKE 'Boeing%'
+)
+AND e.eid IN (
+    SELECT c.eid
+    FROM Certified c
+    JOIN Aircraft a ON c.aid = a.aid
+    WHERE a.cruisingrange > 2000
+);
+Find the aids of all aircraft that can be used on routes from Pune to Delhi.
+
+sql
+Copy code
+SELECT DISTINCT aid
+FROM Flight
+WHERE flight_from = 'Pune' AND flight_to = 'Delhi';
+Display flight details routed from cities with names starting with 'b' and ending with 'n' and have at least 4 characters.
+
+sql
+Copy code
+SELECT *
+FROM Flight
+WHERE flight_from LIKE 'b%n' AND LENGTH(flight_from) >= 4;
+Display in ascending order the names of pilots.
+
+sql
+Copy code
+SELECT DISTINCT ename
+FROM Employees
+ORDER BY ename ASC;
+For each pilot who is certified for more than three aircraft, find the eid and the maximum cruising range of the aircraft for which he or she is certified.
+
+sql
+Copy code
+SELECT c.eid, MAX(a.cruisingrange) AS max_cruisingrange
+FROM Certified c
+JOIN Aircraft a ON c.aid = a.aid
+GROUP BY c.eid
+HAVING COUNT(c.aid) > 3;
+Find the names of pilots whose salary is less than the price of the cheapest route from Mumbai to Goa.
+
+sql
+Copy code
+SELECT e.ename
+FROM Employees e
+WHERE e.salary < (
+    SELECT MIN(price)
+    FROM Flight
+    WHERE flight_from = 'Mumbai' AND flight_to = 'Goa'
+);
+Create a view for aircraft with flight details.
+
+sql
+Copy code
+CREATE VIEW Aircraft_Flight_Details AS
+SELECT a.aid, a.aname, a.cruisingrange, f.fino, f.flight_from, f.flight_to, f.price
+FROM Aircraft a
+JOIN Flight f ON a.aid = f.aid;
+Set the name of the employee "XYZ" that identified by '0151'.
+
+sql
+Copy code
+UPDATE Employees
+SET ename = 'XYZ'
+WHERE eid = 151; -- Assuming you meant 151
+Create stored procedure to reduce the cruising range of aircraft (user-specified) for a specific aircraft (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceCruisingRange(IN aircraft_id INT, IN reduction_amount INT)
+BEGIN
+    UPDATE Aircraft
+    SET cruisingrange = cruisingrange - reduction_amount
+    WHERE aid = aircraft_id;
+END;

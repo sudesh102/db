@@ -1,0 +1,148 @@
+//exp 24
+
+Table Creation
+sql
+Copy code
+-- Create Customer Table
+CREATE TABLE Customet (
+    c_name VARCHAR(100),
+    c_phone VARCHAR(15),
+    c_addr VARCHAR(255),
+    PRIMARY KEY (c_name, c_phone)
+);
+
+-- Create Product Table
+CREATE TABLE Product (
+    prod_id INT PRIMARY KEY,
+    prod_name VARCHAR(100),
+    prod_type VARCHAR(50),
+    prod_price DECIMAL(10, 2) CHECK (prod_price > 0) -- Constraint for product price
+);
+
+-- Create Order Table
+CREATE TABLE Order (
+    o_id INT PRIMARY KEY,
+    prod_id INT,
+    c_name VARCHAR(100),
+    ord_status VARCHAR(20),
+    ord_date DATE,
+    FOREIGN KEY (prod_id) REFERENCES Product(prod_id),
+    FOREIGN KEY (c_name) REFERENCES Customet(c_name)
+);
+
+-- Create Product Search Table
+CREATE TABLE Prod_search (
+    c_name VARCHAR(100),
+    prod_type VARCHAR(50),
+    PRIMARY KEY (c_name, prod_type),
+    FOREIGN KEY (c_name) REFERENCES Customet(c_name)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Customet table
+INSERT INTO Customet (c_name, c_phone, c_addr)
+VALUES ('Alice', '1234567890', '123 Main St'),
+       ('Bob', '2345678901', '456 Elm St'),
+       ('Charlie', '3456789012', '789 Oak St'),
+       ('David', '4567890123', '321 Pine St');
+
+-- Insert data into Product table
+INSERT INTO Product (prod_id, prod_name, prod_type, prod_price)
+VALUES (1, 'Paper', 'Stationery', 300.00),
+       (2, 'Pen', 'Stationery', 150.00),
+       (3, 'Notebook', 'Stationery', 400.00),
+       (4, 'Marker', 'Stationery', 250.00),
+       (5, 'Eraser', 'Stationery', 100.00);
+
+-- Insert data into Order table
+INSERT INTO Order (o_id, prod_id, c_name, ord_status, ord_date)
+VALUES (201, 1, 'Alice', 'Delivered', '2011-03-23'),
+       (202, 2, 'Bob', 'Pending', '2020-07-01'),
+       (203, 3, 'Charlie', 'Delivered', '2020-07-01'),
+       (204, 1, 'David', 'Cancelled', '2020-07-02');
+
+-- Insert data into Prod_search table
+INSERT INTO Prod_search (c_name, prod_type)
+VALUES ('Alice', 'Stationery'),
+       ('Bob', 'Stationery'),
+       ('Charlie', 'Stationery');
+Queries
+Set the price to 200 having product name 'Paper'.
+
+sql
+Copy code
+UPDATE Product
+SET prod_price = 200
+WHERE prod_name = 'Paper';
+Display product details by ascending order of price.
+
+sql
+Copy code
+SELECT *
+FROM Product
+ORDER BY prod_price ASC;
+Display product number and price of product having order number 201.
+
+sql
+Copy code
+SELECT p.prod_id, p.prod_price
+FROM Product p
+JOIN Order o ON p.prod_id = o.prod_id
+WHERE o.o_id = 201;
+Display customer names that have placed orders on date 23 March 2011.
+
+sql
+Copy code
+SELECT DISTINCT c.c_name
+FROM Customet c
+JOIN Order o ON c.c_name = o.c_name
+WHERE o.ord_date = '2011-03-23';
+Display customer names whose address starts with 't' and ends with 'n' and has at least 4 characters.
+
+sql
+Copy code
+SELECT c.c_name
+FROM Customet c
+WHERE c.c_addr LIKE 't%n' AND LENGTH(c.c_addr) >= 4;
+Display average price for each product.
+
+sql
+Copy code
+SELECT prod_name, AVG(prod_price) AS average_price
+FROM Product
+GROUP BY prod_name;
+Display customers that have orders whose status is the same as the order dated on 1st July 2020.
+
+sql
+Copy code
+SELECT DISTINCT c.c_name
+FROM Customet c
+JOIN Order o1 ON c.c_name = o1.c_name
+WHERE o1.ord_status = (SELECT ord_status FROM Order WHERE ord_date = '2020-07-01');
+Find the average price of each product and filter those with an average price more than 500.
+
+sql
+Copy code
+SELECT prod_name
+FROM Product
+GROUP BY prod_name
+HAVING AVG(prod_price) > 500;
+Create a view of customer along with order details.
+
+sql
+Copy code
+CREATE VIEW CustomerOrderDetails AS
+SELECT c.c_name, c.c_phone, c.c_addr, o.o_id, o.ord_status, o.ord_date
+FROM Customet c
+JOIN Order o ON c.c_name = o.c_name;
+Create stored procedure to reduce the price of a product (user-specified) for a specific product (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceProductPrice(IN product_id INT, IN reduction_amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Product
+    SET prod_price = prod_price - reduction_amount
+    WHERE prod_id = product_id;
+END;

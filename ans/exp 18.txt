@@ -1,0 +1,173 @@
+//exp 18
+Table Creation
+sql
+Copy code
+-- Create Customer Table
+CREATE TABLE Customer (
+    custname VARCHAR(100) PRIMARY KEY,
+    custstreet VARCHAR(100),
+    custcity VARCHAR(100)
+);
+
+-- Create Account Table
+CREATE TABLE Account (
+    accno INT PRIMARY KEY,
+    branchname VARCHAR(100),
+    balance DECIMAL(10, 2) CHECK (balance > 500)
+);
+
+-- Create Loan Table
+CREATE TABLE Loan (
+    loanno VARCHAR(10) PRIMARY KEY,
+    branchname VARCHAR(100),
+    amount DECIMAL(10, 2) CHECK (amount >= 0)
+);
+
+-- Create Borrower Table
+CREATE TABLE Borrower (
+    custname VARCHAR(100),
+    loanno VARCHAR(10),
+    FOREIGN KEY (custname) REFERENCES Customer(custname),
+    FOREIGN KEY (loanno) REFERENCES Loan(loanno),
+    PRIMARY KEY (custname, loanno)
+);
+
+-- Create Branch Table
+CREATE TABLE Branch (
+    branchname VARCHAR(100) PRIMARY KEY,
+    branchcity VARCHAR(100),
+    asset DECIMAL(15, 2) CHECK (asset >= 0)
+);
+
+-- Create Depositor Table
+CREATE TABLE Depositor (
+    custname VARCHAR(100),
+    accno INT,
+    FOREIGN KEY (custname) REFERENCES Customer(custname),
+    FOREIGN KEY (accno) REFERENCES Account(accno),
+    PRIMARY KEY (custname, accno)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Customer table
+INSERT INTO Customer (custname, custstreet, custcity)
+VALUES ('John Doe', '123 Main St', 'Sangli'),
+       ('Jane Smith', '456 Elm St', 'Mumbai'),
+       ('Alice Johnson', '789 Oak St', 'Kolhapur'),
+       ('Bob Brown', '321 Pine St', 'Sangli'),
+       ('Charlie Black', '654 Cedar St', 'Delhi');
+
+-- Insert data into Account table
+INSERT INTO Account (accno, branchname, balance)
+VALUES (101, 'Sangli', 1500),
+       (102, 'Mumbai', 2000),
+       (103, 'Sangli', 800),
+       (104, 'Delhi', 600),
+       (105, 'Kolhapur', 1200);
+
+-- Insert data into Loan table
+INSERT INTO Loan (loanno, branchname, amount)
+VALUES ('L-101', 'Sangli', 1000),
+       ('L-102', 'Mumbai', 3000),
+       ('L-103', 'Sangli', 1500),
+       ('L-104', 'Delhi', 2000),
+       ('L-105', 'Kolhapur', 500);
+
+-- Insert data into Borrower table
+INSERT INTO Borrower (custname, loanno)
+VALUES ('John Doe', 'L-101'),
+       ('Bob Brown', 'L-103'),
+       ('Jane Smith', 'L-102');
+
+-- Insert data into Branch table
+INSERT INTO Branch (branchname, branchcity, asset)
+VALUES ('Sangli', 'Sangli', 100000),
+       ('Mumbai', 'Mumbai', 200000),
+       ('Delhi', 'Delhi', 150000),
+       ('Kolhapur', 'Kolhapur', 90000);
+
+-- Insert data into Depositor table
+INSERT INTO Depositor (custname, accno)
+VALUES ('John Doe', 101),
+       ('Bob Brown', 103),
+       ('Alice Johnson', 105),
+       ('Charlie Black', 104);
+Queries
+Display the name of customers who have both an account and a loan at the bank.
+
+sql
+Copy code
+SELECT DISTINCT d.custname
+FROM Depositor d
+JOIN Borrower b ON d.custname = b.custname;
+Display loan numbers of those loans with loan amounts between 1000 and 2000.
+
+sql
+Copy code
+SELECT loanno
+FROM Loan
+WHERE amount BETWEEN 1000 AND 2000;
+Display in alphabetical order all customers who have a loan at the "Sangli" branch.
+
+sql
+Copy code
+SELECT DISTINCT b.custname
+FROM Borrower b
+JOIN Loan l ON b.loanno = l.loanno
+WHERE l.branchname = 'Sangli'
+ORDER BY b.custname ASC;
+Find the average account balance at each branch.
+
+sql
+Copy code
+SELECT branchname, AVG(balance) AS average_balance
+FROM Account
+GROUP BY branchname;
+Find the average account balance at each branch and those branches having an average account balance more than 1000.
+
+sql
+Copy code
+SELECT branchname, AVG(balance) AS average_balance
+FROM Account
+GROUP BY branchname
+HAVING AVG(balance) > 1000;
+Find the name of customers whose city name starts with 's' and has at least 3 characters.
+
+sql
+Copy code
+SELECT custname
+FROM Customer
+WHERE custcity LIKE 's%' AND LENGTH(custcity) >= 3;
+Update the amount of the loan where loan number is "L-101".
+
+sql
+Copy code
+UPDATE Loan
+SET amount = 1200
+WHERE loanno = 'L-101';
+Find the account numbers whose balance is greater than the average balance of each branch.
+
+sql
+Copy code
+SELECT accno
+FROM Account a
+WHERE balance > (SELECT AVG(balance) FROM Account WHERE branchname = a.branchname);
+Create a view of the sum of amounts of all loans at each branch.
+
+sql
+Copy code
+CREATE VIEW LoanSumByBranch AS
+SELECT branchname, SUM(amount) AS total_loan_amount
+FROM Loan
+GROUP BY branchname;
+Create a stored procedure to withdraw some amount (user-specified) from a specific account (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE WithdrawAmount(IN user_accno INT, IN withdrawal_amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Account
+    SET balance = balance - withdrawal_amount
+    WHERE accno = user_accno AND balance - withdrawal_amount > 500;
+END;

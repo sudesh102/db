@@ -1,0 +1,137 @@
+//exp 8
+Table Creation
+sql
+Copy code
+-- Create Book Info table
+CREATE TABLE Book_Info (
+    bookid INT PRIMARY KEY,
+    bname VARCHAR(100),
+    bauthor VARCHAR(100),
+    price DECIMAL(10, 2) CHECK (price > 0),
+    edition VARCHAR(50),
+    publication VARCHAR(100),
+    pur_date DATE
+);
+
+-- Create Student table
+CREATE TABLE Student (
+    lib_car_num INT PRIMARY KEY,
+    stud_name VARCHAR(100),
+    class VARCHAR(50),
+    branch VARCHAR(50),
+    roll_no INT
+);
+
+-- Create Issue Table
+CREATE TABLE Issue_table (
+    issue_date DATE,
+    sub_date DATE,
+    bookid INT,
+    lib_car_num INT,
+    due DECIMAL(10, 2),
+    FOREIGN KEY (bookid) REFERENCES Book_Info(bookid),
+    FOREIGN KEY (lib_car_num) REFERENCES Student(lib_car_num)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert sample data into Book Info
+INSERT INTO Book_Info (bookid, bname, bauthor, price, edition, publication, pur_date)
+VALUES (101, 'Data Structures', 'John Doe', 300, '2nd', 'Pearson', '2022-01-01'),
+       (102, 'Database Systems', 'Jane Smith', 450, '3rd', 'McGraw Hill', '2021-05-15'),
+       (103, 'Digital Logic', 'Alice Johnson', 600, '1st', 'Wiley', '2020-07-20');
+
+-- Insert sample data into Student table
+INSERT INTO Student (lib_car_num, stud_name, class, branch, roll_no)
+VALUES (1, 'Adam', 'CSE', 'Computer', 10),
+       (2, 'Eve', 'CSE', 'IT', 20),
+       (3, 'Bob', 'ECE', 'Electronics', 30);
+
+-- Insert sample data into Issue Table
+INSERT INTO Issue_table (issue_date, sub_date, bookid, lib_car_num, due)
+VALUES ('2023-08-01', '2023-08-21', 101, 1, 50),
+       ('2023-09-05', '2023-09-25', 102, 2, 20),
+       ('2023-07-15', '2023-08-05', 103, 3, 0);
+Queries
+Find the details of the books issued to the library card number 1.
+
+sql
+Copy code
+SELECT b.bookid, b.bname, b.bauthor, b.price, b.edition, b.publication, b.pur_date
+FROM Book_Info b
+JOIN Issue_table i ON b.bookid = i.bookid
+WHERE i.lib_car_num = 1;
+Give all the information about students and the books issued, ordered by library card number.
+
+sql
+Copy code
+SELECT s.*, b.*
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+JOIN Book_Info b ON i.bookid = b.bookid
+ORDER BY s.lib_car_num ASC;
+Give the maximum dues that a student has to pay along with the student's name.
+
+sql
+Copy code
+SELECT s.stud_name, MAX(i.due) AS max_due
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+GROUP BY s.stud_name
+ORDER BY max_due DESC
+LIMIT 1;
+Give class name along with the total number of students in it.
+
+sql
+Copy code
+SELECT class, COUNT(*) AS total_students
+FROM Student
+GROUP BY class;
+Find book details whose name starts with 'd' and has at least 3 characters.
+
+sql
+Copy code
+SELECT *
+FROM Book_Info
+WHERE bname LIKE 'd%' AND LENGTH(bname) >= 3;
+Display the average price of each book.
+
+sql
+Copy code
+SELECT AVG(price) AS avg_price
+FROM Book_Info;
+Create a view of students along with issue details.
+
+sql
+Copy code
+CREATE VIEW StudentIssueView AS
+SELECT s.stud_name, s.class, s.branch, s.roll_no, i.issue_date, i.sub_date, i.due, b.bname
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+JOIN Book_Info b ON i.bookid = b.bookid;
+Find the average price for each author and display those authors with an average price greater than 500.
+
+sql
+Copy code
+SELECT bauthor, AVG(price) AS avg_price
+FROM Book_Info
+GROUP BY bauthor
+HAVING avg_price > 500;
+Display student names whose due is greater than the average due of the library.
+
+sql
+Copy code
+SELECT s.stud_name
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+WHERE i.due > (SELECT AVG(due) FROM Issue_table);
+Create a stored procedure to reduce the price of a book for a specific book.
+
+sql
+Copy code
+CREATE PROCEDURE ReduceBookPrice(IN bookid_input INT, IN reduction DECIMAL(10, 2))
+BEGIN
+    UPDATE Book_Info
+    SET price = price - reduction
+    WHERE bookid = bookid_input;
+END;

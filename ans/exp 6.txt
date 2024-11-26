@@ -1,0 +1,158 @@
+//exp 6
+Table Creation
+sql
+Copy code
+-- Create Flight table
+CREATE TABLE Flight (
+    fino INT PRIMARY KEY,
+    source VARCHAR(50),
+    destination VARCHAR(50),
+    distance INT,
+    departs TIME,
+    arrives TIME,
+    price DECIMAL(10, 2),
+    aid INT,
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Aircraft table
+CREATE TABLE Aircraft (
+    aid INT PRIMARY KEY,
+    aname VARCHAR(50),
+    cruisingrange INT
+);
+
+-- Create Certified table
+CREATE TABLE Certified (
+    eid INT,
+    aid INT,
+    FOREIGN KEY (eid) REFERENCES Employees(eid),
+    FOREIGN KEY (aid) REFERENCES Aircraft(aid)
+);
+
+-- Create Employees table with salary constraint
+CREATE TABLE Employees (
+    eid INT PRIMARY KEY,
+    ename VARCHAR(50),
+    salary DECIMAL(10, 2) CHECK (salary > 500)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Inserting sample data into Aircraft
+INSERT INTO Aircraft (aid, aname, cruisingrange) VALUES
+(1, 'Boeing747', 5000),
+(2, 'AirbusA320', 3500),
+(3, 'SuperJet', 2000);
+
+-- Inserting sample data into Employees
+INSERT INTO Employees (eid, ename, salary) VALUES
+(101, 'John', 22000),
+(102, 'Alice', 18000),
+(103, 'Bob', 25000);
+
+-- Inserting sample data into Certified
+INSERT INTO Certified (eid, aid) VALUES
+(101, 1),
+(102, 2),
+(103, 3);
+
+-- Inserting sample data into Flight
+INSERT INTO Flight (fino, source, destination, distance, departs, arrives, price, aid) VALUES
+(1, 'Pune', 'Delhi', 1450, '10:00:00', '12:00:00', 5000, 1),
+(2, 'Mumbai', 'Chennai', 1300, '14:00:00', '16:30:00', 4500, 2),
+(3, 'Pune', 'Delhi', 1450, '17:00:00', '19:30:00', 5500, 3);
+Queries
+Find the name of aircraft such that all pilots certified to operate them have salaries more than 20,000.
+
+sql
+Copy code
+SELECT a.aname 
+FROM Aircraft a
+JOIN Certified c ON a.aid = c.aid
+JOIN Employees e ON c.eid = e.eid
+GROUP BY a.aname
+HAVING MIN(e.salary) > 20000;
+Set the name of employee "XYZ" that is identified by '0151'.
+
+sql
+Copy code
+UPDATE Employees 
+SET ename = 'XYZ'
+WHERE eid = 151;
+Find aircrafts whose name starts with 's' and has at least 3 characters.
+
+sql
+Copy code
+SELECT aname 
+FROM Aircraft 
+WHERE aname LIKE 's%' AND LENGTH(aname) >= 3;
+For all aircraft with cruising range over 1000 miles, find the names of the aircraft and the average salary of all pilots certified for this aircraft.
+
+sql
+Copy code
+SELECT a.aname, AVG(e.salary) AS avg_salary
+FROM Aircraft a
+JOIN Certified c ON a.aid = c.aid
+JOIN Employees e ON c.eid = e.eid
+WHERE a.cruisingrange > 1000
+GROUP BY a.aname;
+Find the aids of all aircraft that can be used on routes from Pune to Delhi.
+
+sql
+Copy code
+SELECT aid 
+FROM Flight 
+WHERE source = 'Pune' AND destination = 'Delhi';
+Display in alphabetic order all employees who have a salary greater than 10,000.
+
+sql
+Copy code
+SELECT ename 
+FROM Employees 
+WHERE salary > 10000 
+ORDER BY ename ASC;
+Identify the routes that can be piloted by every pilot who makes more than 10,000.
+
+sql
+Copy code
+SELECT f.source, f.destination 
+FROM Flight f
+WHERE NOT EXISTS (
+    SELECT * 
+    FROM Employees e
+    JOIN Certified c ON e.eid = c.eid
+    WHERE e.salary > 10000
+    AND NOT EXISTS (
+        SELECT * 
+        FROM Flight f2
+        WHERE f2.aid = c.aid 
+        AND f2.fino = f.fino
+    )
+);
+Find the average cruising range of each aircraft and those having an average cruising range of more than 2000 miles.
+
+sql
+Copy code
+SELECT aid, AVG(cruisingrange) AS avg_cruisingrange
+FROM Aircraft
+GROUP BY aid
+HAVING AVG(cruisingrange) > 2000;
+Create a view for aircraft with flight details.
+
+sql
+Copy code
+CREATE VIEW AircraftFlightView AS
+SELECT a.aid, a.aname, f.fino, f.source, f.destination, f.price 
+FROM Aircraft a
+JOIN Flight f ON a.aid = f.aid;
+Create a stored procedure to reduce the cruising range of an aircraft (user-specified) for a specific aircraft.
+
+sql
+Copy code
+CREATE PROCEDURE ReduceCruisingRange(IN aircraft_id INT, IN reduction INT)
+BEGIN
+   UPDATE Aircraft 
+   SET cruisingrange = cruisingrange - reduction 
+   WHERE aid = aircraft_id;
+END;

@@ -1,0 +1,178 @@
+//exp 29
+
+Table Creation
+sql
+Copy code
+-- Create Members Table
+CREATE TABLE Members (
+    mem_id INT PRIMARY KEY,
+    mem_name VARCHAR(100),
+    mem_addr VARCHAR(255),
+    mem_phone VARCHAR(15)
+);
+
+-- Create Books Table
+CREATE TABLE Books (
+    b_id INT PRIMARY KEY,
+    b_isbn VARCHAR(13) UNIQUE,
+    b_name VARCHAR(100),
+    b_price DECIMAL(10, 2),
+    b_edition VARCHAR(50),
+    CHECK (b_price > 0) -- Constraint for price
+);
+
+-- Create Publisher Table
+CREATE TABLE Publisher (
+    pub_name VARCHAR(100),
+    pub_date DATE,
+    b_isbn VARCHAR(13),
+    PRIMARY KEY (pub_name, b_isbn),
+    FOREIGN KEY (b_isbn) REFERENCES Books(b_isbn)
+);
+
+-- Create Supplier Table
+CREATE TABLE Supplier (
+    s_name VARCHAR(100),
+    s_id INT PRIMARY KEY,
+    b_id INT,
+    FOREIGN KEY (b_id) REFERENCES Books(b_id)
+);
+
+-- Create Member_Books_Record Table
+CREATE TABLE Member_Books_Record (
+    mem_id INT,
+    b_id INT,
+    issue_date DATE,
+    return_date DATE,
+    PRIMARY KEY (mem_id, b_id),
+    FOREIGN KEY (mem_id) REFERENCES Members(mem_id),
+    FOREIGN KEY (b_id) REFERENCES Books(b_id)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Members table
+INSERT INTO Members (mem_id, mem_name, mem_addr, mem_phone)
+VALUES (123, 'Alice', 'Ivy Lane, City A', '1234567890'),
+       (124, 'Bob', 'Maple Street, City B', '0987654321'),
+       (125, 'Charlie', 'Oak Road, City C', '1122334455'),
+       (126, 'David', 'Indigo Boulevard, City D', '2233445566');
+
+-- Insert data into Books table
+INSERT INTO Books (b_id, b_isbn, b_name, b_price, b_edition)
+VALUES (1, '9780136042594', 'DBMS', 550.00, 'Third Edition'),
+       (2, '9780201633610', 'Algorithms', 300.00, 'First Edition'),
+       (3, '9780131103627', 'Computer Networks', 450.00, 'Fifth Edition'),
+       (4, '9780131101630', 'Operating Systems', 600.00, 'Fourth Edition'),
+       (5, '9780132947158', 'Data Structures', 700.00, 'Second Edition');
+
+-- Insert data into Publisher table
+INSERT INTO Publisher (pub_name, pub_date, b_isbn)
+VALUES ('Publisher A', '2022-01-01', '9780136042594'),
+       ('Publisher B', '2022-01-01', '9780201633610'),
+       ('Publisher C', '2023-01-01', '9780131103627'),
+       ('Publisher D', '2023-01-01', '9780131101630');
+
+-- Insert data into Supplier table
+INSERT INTO Supplier (s_name, s_id, b_id)
+VALUES ('Supplier A', 1, 1),
+       ('Supplier B', 2, 2),
+       ('Supplier C', 3, 3);
+
+-- Insert data into Member_Books_Record table
+INSERT INTO Member_Books_Record (mem_id, b_id, issue_date, return_date)
+VALUES (123, 1, '2024-09-15', NULL),  -- Not returned
+       (124, 2, '2024-09-16', '2024-09-20'),
+       (125, 3, '2024-09-17', '2024-09-22');
+Queries
+Find the details of the books issued to the member number 123.
+
+sql
+Copy code
+SELECT b.*
+FROM Books b
+JOIN Member_Books_Record mbr ON b.b_id = mbr.b_id
+WHERE mbr.mem_id = 123;
+Set the title of book "DBMS" that is identified by 'A0151'. (Assuming A0151 refers to b_id = 1)
+
+sql
+Copy code
+UPDATE Books
+SET b_name = 'Database Management Systems'
+WHERE b_id = 1;
+Give all the information about members and the books issued with ascending order of issue date.
+
+sql
+Copy code
+SELECT m.*, b.*
+FROM Members m
+JOIN Member_Books_Record mbr ON m.mem_id = mbr.mem_id
+JOIN Books b ON mbr.b_id = b.b_id
+ORDER BY mbr.issue_date ASC;
+Display the names of members whose address starts with 'I' and has at least 5 characters.
+
+sql
+Copy code
+SELECT mem_name
+FROM Members
+WHERE mem_addr LIKE 'I%' AND LENGTH(mem_addr) >= 5;
+Display the name of the publisher who published the book on the same date as the book "DBMS".
+
+sql
+Copy code
+SELECT pub_name
+FROM Publisher
+WHERE pub_date = (SELECT pub_date FROM Publisher WHERE b_isbn = '9780136042594');
+Count the number of books for each book.
+
+sql
+Copy code
+SELECT b_name, COUNT(b_id) AS book_count
+FROM Books
+GROUP BY b_name;
+Find the average price for each book, and display those books having an average price more than 500.
+
+sql
+Copy code
+SELECT b_name, AVG(b_price) AS average_price
+FROM Books
+GROUP BY b_name
+HAVING AVG(b_price) > 500;
+Display member details who have not yet returned books.
+
+sql
+Copy code
+SELECT m.*
+FROM Members m
+JOIN Member_Books_Record mbr ON m.mem_id = mbr.mem_id
+WHERE mbr.return_date IS NULL;
+Create a view of members along with issue details and return date.
+
+sql
+Copy code
+CREATE VIEW Member_Issue_View AS
+SELECT m.mem_id, m.mem_name, b.b_name, mbr.issue_date, mbr.return_date
+FROM Members m
+JOIN Member_Books_Record mbr ON m.mem_id = mbr.mem_id
+JOIN Books b ON mbr.b_id = b.b_id;
+Create a stored procedure to reduce the price of a book (user-specified) for a specific book (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceBookPrice(IN book_id INT, IN reduction_amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Books
+    SET b_price = b_price - reduction_amount
+    WHERE b_id = book_id AND b_price - reduction_amount > 0;
+END;
+Display student names whose dues are greater than the average due of the library. (Assuming dues is represented in the return_date as the difference between issue_date and return_date. You may need to adjust the definition of "due".)
+
+sql
+Copy code
+SELECT m.mem_name
+FROM Members m
+JOIN Member_Books_Record mbr ON m.mem_id = mbr.mem_id
+WHERE mbr.return_date IS NULL 
+AND DATEDIFF(CURRENT_DATE, mbr.issue_date) > 
+(SELECT AVG(DATEDIFF(CURRENT_DATE, issue_date))
+ FROM Member_Books_Record WHERE return_date IS NULL);

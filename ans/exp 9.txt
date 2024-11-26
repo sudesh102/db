@@ -1,0 +1,150 @@
+//exp 9
+Table Creation
+sql
+Copy code
+-- Create Time Table
+CREATE TABLE Time (
+    tid INT PRIMARY KEY,
+    t_date DATE,
+    t_month INT,
+    t_year INT
+);
+
+-- Create Location Table
+CREATE TABLE Location (
+    lid INT PRIMARY KEY,
+    city VARCHAR(100),
+    state VARCHAR(100)
+);
+
+-- Create Product Table
+CREATE TABLE Product (
+    pid INT PRIMARY KEY,
+    pname VARCHAR(100),
+    category VARCHAR(50),
+    price DECIMAL(10, 2) CHECK (price > 0)
+);
+
+-- Create Sales Table
+CREATE TABLE Sales (
+    tid INT,
+    lid INT,
+    pid INT,
+    s_sales DECIMAL(10, 2),
+    FOREIGN KEY (tid) REFERENCES Time(tid),
+    FOREIGN KEY (lid) REFERENCES Location(lid),
+    FOREIGN KEY (pid) REFERENCES Product(pid)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert sample data into Time table
+INSERT INTO Time (tid, t_date, t_month, t_year)
+VALUES (1, '2024-10-01', 10, 2024),
+       (2, '2024-11-15', 11, 2024),
+       (3, '2024-12-05', 12, 2024);
+
+-- Insert sample data into Location table
+INSERT INTO Location (lid, city, state)
+VALUES (1, 'Mumbai', 'Maharashtra'),
+       (2, 'Delhi', 'Delhi'),
+       (3, 'Indore', 'Madhya Pradesh');
+
+-- Insert sample data into Product table
+INSERT INTO Product (pid, pname, category, price)
+VALUES (1, 'Laptop', 'Electronics', 1200),
+       (2, 'Mobile', 'Electronics', 700),
+       (3, 'Book', 'Stationery', 150),
+       (4, 'TV', 'Electronics', 900);
+
+-- Insert sample data into Sales table
+INSERT INTO Sales (tid, lid, pid, s_sales)
+VALUES (1, 1, 1, 550),
+       (2, 2, 2, 600),
+       (3, 3, 3, 400),
+       (2, 1, 4, 300);
+Queries
+Find the product name whose price is greater than 300.
+
+sql
+Copy code
+SELECT pname
+FROM Product
+WHERE price > 300;
+Find the total sales for each city.
+
+sql
+Copy code
+SELECT l.city, SUM(s.s_sales) AS total_sales
+FROM Location l
+JOIN Sales s ON l.lid = s.lid
+GROUP BY l.city;
+Display the location details whose state name includes the substring "Ind".
+
+sql
+Copy code
+SELECT *
+FROM Location
+WHERE state LIKE '%Ind%';
+Display the average price of products for each category.
+
+sql
+Copy code
+SELECT category, AVG(price) AS avg_price
+FROM Product
+GROUP BY category;
+Display the name of the product having sales more than 500.
+
+sql
+Copy code
+SELECT p.pname
+FROM Product p
+JOIN Sales s ON p.pid = s.pid
+WHERE s.s_sales > 500;
+Display the products along with their price from highest to lowest.
+
+sql
+Copy code
+SELECT pname, price
+FROM Product
+ORDER BY price DESC;
+Find the 2nd highest product by total sales.
+
+sql
+Copy code
+SELECT pname, total_sales
+FROM (
+  SELECT p.pname, SUM(s.s_sales) AS total_sales,
+         DENSE_RANK() OVER (ORDER BY SUM(s.s_sales) DESC) AS rank
+  FROM Product p
+  JOIN Sales s ON p.pid = s.pid
+  GROUP BY p.pname
+) AS ranked_sales
+WHERE rank = 2;
+Create a view for finding total sales by month for each city.
+
+sql
+Copy code
+CREATE VIEW CityMonthlySales AS
+SELECT l.city, t.t_month, SUM(s.s_sales) AS total_sales
+FROM Location l
+JOIN Sales s ON l.lid = s.lid
+JOIN Time t ON s.tid = t.tid
+GROUP BY l.city, t.t_month;
+Display product names whose price is greater than the average price of products.
+
+sql
+Copy code
+SELECT pname
+FROM Product
+WHERE price > (SELECT AVG(price) FROM Product);
+Create a stored procedure to reduce the price of a product (user-specified) for a specific product.
+
+sql
+Copy code
+CREATE PROCEDURE ReduceProductPrice(IN product_id INT, IN reduction DECIMAL(10, 2))
+BEGIN
+    UPDATE Product
+    SET price = price - reduction
+    WHERE pid = product_id;
+END;

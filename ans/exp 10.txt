@@ -1,0 +1,148 @@
+//exp 10
+Table Creation
+sql
+Copy code
+-- Create Hotel Table
+CREATE TABLE Hotel (
+    hotelno INT PRIMARY KEY,
+    hotelname VARCHAR(100),
+    city VARCHAR(100)
+);
+
+-- Create Room Table
+CREATE TABLE Room (
+    roomno INT PRIMARY KEY,
+    hotelno INT,
+    type CHAR(1),
+    price DECIMAL(10, 2) CHECK (price > 500),
+    FOREIGN KEY (hotelno) REFERENCES Hotel(hotelno)
+);
+
+-- Create Booking Table
+CREATE TABLE Booking (
+    hotelno INT,
+    guestno INT,
+    datefrom DATE,
+    dateto DATE,
+    roomno INT,
+    PRIMARY KEY (hotelno, guestno, roomno),
+    FOREIGN KEY (hotelno) REFERENCES Hotel(hotelno),
+    FOREIGN KEY (guestno) REFERENCES Guest(guestno),
+    FOREIGN KEY (roomno) REFERENCES Room(roomno)
+);
+
+-- Create Guest Table
+CREATE TABLE Guest (
+    guestno INT PRIMARY KEY,
+    guestname VARCHAR(100),
+    guestaddress VARCHAR(100)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Hotel table
+INSERT INTO Hotel (hotelno, hotelname, city)
+VALUES (1, 'OPAL', 'London'),
+       (2, 'Season4', 'Paris'),
+       (3, 'Lotel', 'London');
+
+-- Insert data into Room table
+INSERT INTO Room (roomno, hotelno, type, price)
+VALUES (101, 1, 'D', 1200),
+       (102, 1, 'F', 1500),
+       (103, 2, 'D', 2000),
+       (104, 2, 'F', 2500),
+       (105, 3, 'D', 1800);
+
+-- Insert data into Guest table
+INSERT INTO Guest (guestno, guestname, guestaddress)
+VALUES (1, 'John Doe', 'London'),
+       (2, 'Jane Smith', 'Paris'),
+       (3, 'Michael Clark', 'New York');
+
+-- Insert data into Booking table
+INSERT INTO Booking (hotelno, guestno, datefrom, dateto, roomno)
+VALUES (1, 1, '2024-10-01', '2024-10-05', 101),
+       (2, 2, '2024-10-05', '2024-10-10', 103),
+       (3, 3, '2024-11-01', '2024-11-05', 105);
+Queries
+Select all hotels in the city "London".
+
+sql
+Copy code
+SELECT * FROM Hotel
+WHERE city = 'London';
+Display the details of the guest who booked a room in the hotel "OPAL".
+
+sql
+Copy code
+SELECT g.*
+FROM Guest g
+JOIN Booking b ON g.guestno = b.guestno
+JOIN Hotel h ON b.hotelno = h.hotelno
+WHERE h.hotelname = 'OPAL';
+Display room details whose type is either 'D' or 'F' by price order.
+
+sql
+Copy code
+SELECT * FROM Room
+WHERE type IN ('D', 'F')
+ORDER BY price ASC;
+Find the average prices of rooms at each hotel.
+
+sql
+Copy code
+SELECT h.hotelname, AVG(r.price) AS avg_price
+FROM Room r
+JOIN Hotel h ON r.hotelno = h.hotelno
+GROUP BY h.hotelname;
+Display the guest details whose address includes the substring "London".
+
+sql
+Copy code
+SELECT * FROM Guest
+WHERE guestaddress LIKE '%London%';
+Find the guest name who booked "Lotel" whose number is the same as the hotel "Season4".
+
+sql
+Copy code
+SELECT g.guestname
+FROM Guest g
+JOIN Booking b ON g.guestno = b.guestno
+JOIN Hotel h1 ON b.hotelno = h1.hotelno
+WHERE h1.hotelname = 'Lotel' AND b.hotelno = (SELECT hotelno FROM Hotel WHERE hotelname = 'Season4');
+Set the price to 5000 for rooms with type 'D'.
+
+sql
+Copy code
+UPDATE Room
+SET price = 5000
+WHERE type = 'D';
+Find the average price of each hotel and display those hotels with an average price greater than 2000.
+
+sql
+Copy code
+SELECT h.hotelname, AVG(r.price) AS avg_price
+FROM Room r
+JOIN Hotel h ON r.hotelno = h.hotelno
+GROUP BY h.hotelname
+HAVING AVG(r.price) > 2000;
+Create a view for room with guest details.
+
+sql
+Copy code
+CREATE VIEW RoomGuestDetails AS
+SELECT r.roomno, r.type, r.price, g.guestname, g.guestaddress
+FROM Room r
+JOIN Booking b ON r.roomno = b.roomno
+JOIN Guest g ON b.guestno = g.guestno;
+Create a stored procedure to reduce the price of a room (user-specified) for a specific type (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceRoomPrice(IN room_type CHAR(1), IN reduction DECIMAL(10, 2))
+BEGIN
+    UPDATE Room
+    SET price = price - reduction
+    WHERE type = room_type;
+END;

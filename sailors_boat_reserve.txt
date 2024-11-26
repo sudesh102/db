@@ -1,0 +1,271 @@
+Sailors (sid: integer, sname: string, rating: integer, age: real)
+Boats (bid: integer, bname: string, color: string)
+Reserves (sid: integer, bid: integer)
+
+-- Create the Sailors table
+CREATE TABLE Sailors (
+    sid INTEGER PRIMARY KEY,
+    sname VARCHAR(50),
+    rating INTEGER,
+    age REAL
+);
+
+-- Create the Boats table
+CREATE TABLE Boats (
+    bid INTEGER PRIMARY KEY,
+    bname VARCHAR(50),
+    color VARCHAR(20)
+);
+
+-- Create the Reserves table
+CREATE TABLE Reserves (
+    sid INTEGER,
+    bid INTEGER,
+    FOREIGN KEY (sid) REFERENCES Sailors(sid),
+    FOREIGN KEY (bid) REFERENCES Boats(bid)
+);
+
+-- Insert sample data into Sailors table
+INSERT INTO Sailors VALUES (1, 'John', 10, 25.5);
+INSERT INTO Sailors VALUES (2, 'Mike', 8, 30.0);
+INSERT INTO Sailors VALUES (3, 'Anna', 5, 20.0);
+INSERT INTO Sailors VALUES (4, 'Paul', 7, 22.5);
+
+-- Insert sample data into Boats table
+INSERT INTO Boats VALUES (101, 'BoatA', 'red');
+INSERT INTO Boats VALUES (102, 'BoatB', 'green');
+INSERT INTO Boats VALUES (103, 'BoatC', 'blue');
+
+-- Insert sample data into Reserves table
+INSERT INTO Reserves VALUES (1, 101);
+INSERT INTO Reserves VALUES (2, 102);
+INSERT INTO Reserves VALUES (3, 101);
+
+
+1. Find the sids of sailors who have reserved a red boat
+SELECT DISTINCT r.sid
+FROM Reserves r
+JOIN Boats b ON r.bid = b.bid
+WHERE b.color = 'red';
+
+
+2. Find the names of sailors who have reserved a red or green boat
+SELECT DISTINCT s.sname
+FROM Sailors s
+JOIN Reserves r ON s.sid = r.sid
+JOIN Boats b ON r.bid = b.bid
+WHERE b.color IN ('red', 'green');
+
+
+3] Find the names of sailors who are older than the oldest sailor with rating of 10
+SELECT s.sname
+FROM Sailors s
+WHERE s.age > (SELECT MAX(age) FROM Sailors WHERE rating = 10);
+
+4] Find those ratings for which the average age of sailors is 18
+SELECT rating
+FROM Sailors
+GROUP BY rating
+HAVING AVG(age) = 18;
+
+5] No one with a rating less than five can reserve a green boat will result by showing message ‘Sailor is not qualified’ while inserting sailor reserving boat information.
+
+CREATE TRIGGER PreventLowRatingReservation
+BEFORE INSERT ON Reserves
+FOR EACH ROW
+BEGIN
+    IF (NEW.bid IN (SELECT bid FROM Boats WHERE color = 'Green') AND
+        NEW.sid IN (SELECT sid FROM Sailors WHERE rating < 5)) THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Sailor is not qualified');
+    END IF;
+END;
+
+
+6] Create stored procedure to remove some number of rating (i.e. user specified) from specific sailor (i.e. user specified) only if that rating greater then available otherwise display error message.
+DELIMITER //
+CREATE PROCEDURE AdjustSailorRating(IN sailor_id INT, IN rating_decrease INT)
+BEGIN
+    DECLARE current_rating INT;
+    SELECT rating INTO current_rating FROM Sailors WHERE sid = sailor_id;
+
+    IF current_rating > rating_decrease THEN
+        UPDATE Sailors
+        SET rating = rating - rating_decrease
+        WHERE sid = sailor_id;
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Rating adjustment exceeds current rating';
+    END IF;
+END;
+//
+DELIMITER ;
+
+
+
+
+1] Find the names of sailors who have reserved boat number 103
+
+SELECT s.sname
+FROM Sailors s
+JOIN Reserves r ON s.sid = r.sid
+WHERE r.bid = 103;
+
+2] Find the names of sailors who have reserved both a red and a green boat 
+
+SELECT s.sname
+FROM Sailors s
+WHERE s.sid IN (
+    SELECT r1.sid
+    FROM Reserves r1
+    JOIN Boats b1 ON r1.bid = b1.bid
+    WHERE b1.color = 'Red'
+)
+AND s.sid IN (
+    SELECT r2.sid
+    FROM Reserves r2
+    JOIN Boats b2 ON r2.bid = b2.bid
+    WHERE b2.color = 'Green'
+);
+
+OR
+
+SELECT DISTINCT s.sname
+FROM Sailors s
+JOIN Reserves r1 ON s.sid = r1.sid
+JOIN Boats b1 ON r1.bid = b1.bid
+JOIN Reserves r2 ON s.sid = r2.sid
+JOIN Boats b2 ON r2.bid = b2.bid
+WHERE b1.color = 'red' AND b2.color = 'green';
+
+3] Find the age of the youngest sailor for each rating level
+
+SELECT rating, MIN(age) AS youngest_age
+FROM Sailors
+GROUP BY rating;
+
+4] Find sailors whose rating is better than some sailor called Ram.
+
+SELECT s.sname
+FROM Sailors s
+WHERE s.rating > (SELECT rating FROM Sailors WHERE sname = 'Ram');
+
+5] While inserting information of all sailor, store information of only younger sailor whose age is less than 18 in separate table youngSailorUpdate.
+
+CREATE TABLE youngSailorUpdate (
+    sid INT PRIMARY KEY,
+    sname VARCHAR(50),
+    rating INT,
+    age FLOAT
+);
+CREATE TRIGGER InsertYoungSailor
+AFTER INSERT ON Sailors
+FOR EACH ROW
+BEGIN
+    IF NEW.age < 18 THEN
+        INSERT INTO youngSailorUpdate (sid, sname, rating, age)
+        VALUES (NEW.sid, NEW.sname, NEW.rating, NEW.age);
+    END IF;
+END;
+
+
+1] Find the names of sailors who have reserved at least one boat
+
+SELECT DISTINCT s.sname
+FROM Sailors s
+JOIN Reserves r ON s.sid = r.sid;
+
+2] Count the number of different sailor names
+
+SELECT COUNT(DISTINCT sname) AS distinct_sailor_count
+FROM Sailors;
+
+3] Find sids of all sailors who have reserved red boats but not green boats
+
+SELECT DISTINCT r1.sid
+FROM Reserves r1
+JOIN Boats b1 ON r1.bid = b1.bid
+WHERE b1.color = 'Red'
+AND r1.sid NOT IN (
+    SELECT r2.sid
+    FROM Reserves r2
+    JOIN Boats b2 ON r2.bid = b2.bid
+    WHERE b2.color = 'Green'
+);
+
+4] Find the names of sailors who are older than the oldest sailor with rating of 10
+
+SELECT s.sname
+FROM Sailors s
+WHERE s.age > (SELECT MAX(age) FROM Sailors WHERE rating = 10);
+
+
+1] Find the colors of boats reserved by Raj
+
+SELECT DISTINCT b.color
+FROM Sailors s
+JOIN Reserves r ON s.sid = r.sid
+JOIN Boats b ON r.bid = b.bid
+WHERE s.sname = 'Raj';
+
+2] Find the names of sailors who have not reserved a red boat
+
+SELECT DISTINCT s.sname
+FROM Sailors s
+WHERE s.sid NOT IN (
+    SELECT r.sid
+    FROM Reserves r
+    JOIN Boats b ON r.bid = b.bid
+    WHERE b.color = 'Red'
+);
+
+3] Find all sids of sailors who have a rating of 10 or reserved boat 104
+
+SELECT DISTINCT s.sid
+FROM Sailors s
+LEFT JOIN Reserves r ON s.sid = r.sid
+WHERE s.rating = 10 OR r.bid = 104;
+
+4] Find the age of youngest sailor who is at least 18 years old
+
+SELECT MIN(age) AS youngest_age
+FROM Sailors
+WHERE age >= 18;
+
+3] For each red boat, find the number of reservations for this boat
+
+SELECT b.bid, COUNT(r.sid) AS reservation_count
+FROM Boats b
+LEFT JOIN Reserves r ON b.bid = r.bid
+WHERE b.color = 'Red'
+GROUP BY b.bid;
+ 
+4] Find average age of sailors for each rating level.
+
+SELECT rating, AVG(age) AS average_age
+FROM Sailors
+GROUP BY rating;
+
+3] Find the names of sailors who have reserved all boats
+
+SELECT s.sname
+FROM Sailors s
+JOIN Reserves r ON s.sid = r.sid
+GROUP BY s.sid
+HAVING COUNT(DISTINCT r.bid) = (SELECT COUNT(*) FROM Boats);
+
+This query ensures that the sailor has reserved all boats by checking if the count of distinct boat IDs reserved by the sailor matches the total number of boats in the Boats table.
+
+4] Find the average age of sailors with a rating of 10
+
+SELECT AVG(age) AS average_age
+FROM Sailors
+WHERE rating = 10;
+
+2] Find the average age of all sailors
+
+SELECT AVG(age) AS average_age
+FROM Sailors;
+
+
+
+

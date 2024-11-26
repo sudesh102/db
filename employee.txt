@@ -1,0 +1,242 @@
+employee (employee-name, street, city)
+works (employee-name, company-name, salary)
+company (company-name, city)
+manages (employee-name, manager-name)
+
+-- Create Employee Table
+CREATE TABLE employee (
+    employee_name VARCHAR(50),
+    street VARCHAR(100),
+    city VARCHAR(50),
+    PRIMARY KEY (employee_name)
+);
+
+-- Create Works Table
+CREATE TABLE works (
+    employee_name VARCHAR(50),
+    company_name VARCHAR(50),
+    salary DECIMAL(10, 2),
+    FOREIGN KEY (employee_name) REFERENCES employee(employee_name),
+    FOREIGN KEY (company_name) REFERENCES company(company_name)
+);
+
+-- Create Company Table
+CREATE TABLE company (
+    company_name VARCHAR(50),
+    city VARCHAR(50),
+    PRIMARY KEY (company_name)
+);
+
+-- Create Manages Table
+CREATE TABLE manages (
+    employee_name VARCHAR(50),
+    manager_name VARCHAR(50),
+    PRIMARY KEY (employee_name, manager_name),
+    FOREIGN KEY (employee_name) REFERENCES employee(employee_name),
+    FOREIGN KEY (manager_name) REFERENCES employee(employee_name)
+);
+
+-- Insert Sample Data into Employee
+INSERT INTO employee (employee_name, street, city) VALUES
+('John Doe', '123 Elm St', 'Chicago'),
+('Jane Smith', '456 Oak Rd', 'New York'),
+('Robert Johnson', '789 Pine Ave', 'Chicago'),
+('Mary Williams', '101 Maple St', 'New York');
+
+-- Insert Sample Data into Company
+INSERT INTO company (company_name, city) VALUES
+('First Bank Corporation', 'Chicago'),
+('Tech Solutions', 'New York');
+
+-- Insert Sample Data into Works
+INSERT INTO works (employee_name, company_name, salary) VALUES
+('John Doe', 'First Bank Corporation', 9500),
+('Jane Smith', 'Tech Solutions', 12000),
+('Robert Johnson', 'First Bank Corporation', 13000),
+('Mary Williams', 'Tech Solutions', 11000);
+
+-- Insert Sample Data into Manages
+INSERT INTO manages (employee_name, manager_name) VALUES
+('Jane Smith', 'John Doe'),
+('Robert Johnson', 'Jane Smith');
+
+
+1] Find the names of all employees who work for First Bank Corporation.
+
+SELECT e.employee_name
+FROM employee e
+JOIN works w ON e.employee_name = w.employee_name
+WHERE w.company_name = 'First Bank Corporation';
+
+2] Find all employees in the database who live in the same cities and on the same streets as do their managers.
+
+SELECT e.employee_name
+FROM employee e
+JOIN manages m ON e.employee_name = m.employee_name
+JOIN employee mgr ON m.manager_name = mgr.employee_name
+WHERE e.city = mgr.city AND e.street = mgr.street;
+
+3] Find the company that has the smallest payroll.
+
+SELECT w.company_name
+FROM works w
+GROUP BY w.company_name
+ORDER BY SUM(w.salary) ASC
+FETCH FIRST 1 ROWS ONLY;
+
+4] Give all employees of First Bank Corporation a 10 percent raise.
+
+UPDATE works
+SET salary = salary * 1.10
+WHERE company_name = 'First Bank Corporation';
+
+5] Write a stored procedure that receives as input the name of an employee and displays its details, salary and working company details.
+
+
+
+CREATE PROCEDURE GetEmployeeDetails(IN emp_name VARCHAR(50))
+BEGIN
+    SELECT e.employee_name, e.street, e.city, w.salary, w.company_name
+    FROM employee e
+    JOIN works w ON e.employee_name = w.employee_name
+    WHERE e.employee_name = emp_name;
+END;
+
+
+6] While inserting information of all employee, store information of only lowest salary employee whose salary is less than 10000 in separate table LowSalaryEmployeeDetails.
+
+-- Create the LowSalaryEmployeeDetails table
+CREATE TABLE LowSalaryEmployeeDetails (
+    employee_name VARCHAR(50),
+    street VARCHAR(50),
+    city VARCHAR(50),
+    salary REAL,
+    company_name VARCHAR(50)
+);
+
+-- Trigger to insert the lowest salary employee (if salary < 10000) into LowSalaryEmployeeDetails
+CREATE TRIGGER StoreLowSalaryEmployee
+AFTER INSERT ON works
+FOR EACH ROW
+BEGIN
+    -- If the employee has a salary less than 10000 and has the lowest salary, store their details
+    IF NEW.salary < 10000 THEN
+        INSERT INTO LowSalaryEmployeeDetails (employee_name, street, city, salary, company_name)
+        SELECT e.employee_name, e.street, e.city, NEW.salary, NEW.company_name
+        FROM employee e
+        WHERE e.employee_name = NEW.employee_name;
+    END IF;
+END;
+
+
+OR
+CREATE TABLE LowSalaryEmployeeDetails (
+    employee_name VARCHAR(50),
+    street VARCHAR(100),
+    city VARCHAR(50),
+    salary DECIMAL(10, 2)
+);
+
+INSERT INTO LowSalaryEmployeeDetails (employee_name, street, city, salary)
+SELECT e.employee_name, e.street, e.city, w.salary
+FROM employee e
+JOIN works w ON e.employee_name = w.employee_name
+WHERE w.salary < 10000;
+
+
+2] Find all employees in the database who earn more than each employee of Small Bank Corporation.
+
+SELECT e.employee_name
+FROM works e
+WHERE e.salary > ALL (
+    SELECT w.salary
+    FROM works w
+    JOIN company c ON w.company_name = c.company_name
+    WHERE c.company_name = 'Small Bank Corporation'
+);
+
+
+4] Assume that the companies may be located in several cities. Find all companies located in every city in which Small Bank Corporation is located
+
+SELECT c.company_name
+FROM company c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM company s
+    WHERE s.company_name = 'Small Bank Corporation'
+    AND NOT EXISTS (
+        SELECT 1
+        FROM company c2
+        WHERE c2.company_name = c.company_name
+        AND c2.city = s.city
+    )
+);
+
+
+5] Write a stored procedure that receives as input the name of a department and displays its average salary of the department along with number of employee working in that department.
+
+CREATE PROCEDURE GetDepartmentDetails(IN department_name VARCHAR(50))
+BEGIN
+    -- Retrieve the average salary and the count of employees for the given department
+    SELECT AVG(w.salary) AS average_salary, COUNT(w.employee_name) AS number_of_employees
+    FROM works w
+    JOIN company c ON w.company_name = c.company_name
+    WHERE c.city = department_name;  -- Assuming department_name corresponds to a city in company table
+END;
+
+
+1] Find the names, street addresses, and cities of residence of all employees who work for First Bank Corporation and earn more than $10,000.
+
+SELECT e.employee_name, e.street, e.city
+FROM employee e
+JOIN works w ON e.employee_name = w.employee_name
+WHERE w.company_name = 'First Bank Corporation'
+AND w.salary > 10000;
+
+3] Find the company that has the most employees.
+
+SELECT w.company_name
+FROM works w
+GROUP BY w.company_name
+ORDER BY COUNT(w.employee_name) DESC
+FETCH FIRST 1 ROWS ONLY;
+
+4] Give all managers of First Bank Corporation a 10 percent raise.
+
+UPDATE works w
+SET w.salary = w.salary * 1.10
+WHERE w.employee_name IN (
+    SELECT m.employee_name
+    FROM manages m
+    JOIN works w2 ON m.manager_name = w2.employee_name
+    JOIN company c ON w2.company_name = c.company_name
+    WHERE c.company_name = 'First Bank Corporation'
+);
+
+1] Find the names and cities of residence of all employees who work for First Bank Corporation.
+
+SELECT e.employee_name, e.city
+FROM employee e
+JOIN works w ON e.employee_name = w.employee_name
+WHERE w.company_name = 'First Bank Corporation';
+
+2] Find all employees in the database who live in the same cities as the companies for which they work.
+
+SELECT e.employee_name
+FROM employee e
+JOIN works w ON e.employee_name = w.employee_name
+JOIN company c ON w.company_name = c.company_name
+WHERE e.city = c.city;
+
+3] Find those companies whose employees earn a higher salary, on average, than the average salary at First Bank Corporation.
+
+SELECT c.company_name
+FROM company c
+JOIN works w ON c.company_name = w.company_name
+GROUP BY c.company_name
+HAVING AVG(w.salary) > (
+    SELECT AVG(w2.salary)
+    FROM works w2
+    JOIN company c2 ON w2.company_name = c2.company_name
+    WHERE c2.company_name = 'First Bank Corporation'
+);

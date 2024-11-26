@@ -1,0 +1,195 @@
+Student (snum: integer, sname: string, majorr: string, levell: string, age: integer)
+Class (cname: string, room: string, fid: integer)
+Enrolled (snum: integer, cname: string)
+Faculty (fid: integer, fname: string, deptid: integer)
+
+-- Create the Student table
+CREATE TABLE Student (
+    snum INTEGER PRIMARY KEY,
+    sname VARCHAR(50),
+    majorr VARCHAR(50),
+    levell VARCHAR(10),
+    age INTEGER
+);
+
+-- Create the Class table
+CREATE TABLE Class (
+    cname VARCHAR(50) PRIMARY KEY,
+    room VARCHAR(50),
+    fid INTEGER,
+    FOREIGN KEY (fid) REFERENCES Faculty(fid)
+);
+
+-- Create the Enrolled table
+CREATE TABLE Enrolled (
+    snum INTEGER,
+    cname VARCHAR(50),
+    FOREIGN KEY (snum) REFERENCES Student(snum),
+    FOREIGN KEY (cname) REFERENCES Class(cname)
+);
+
+-- Create the Faculty table
+CREATE TABLE Faculty (
+    fid INTEGER PRIMARY KEY,
+    fname VARCHAR(50),
+    deptid INTEGER
+);
+
+-- Insert sample data into Student table
+INSERT INTO Student VALUES (1, 'John Doe', 'Computer Science', 'JR', 20);
+INSERT INTO Student VALUES (2, 'Jane Smith', 'Mathematics', 'SR', 22);
+INSERT INTO Student VALUES (3, 'Mike Johnson', 'Biology', 'JR', 21);
+INSERT INTO Student VALUES (4, 'Mary Brown', 'Physics', 'FR', 19);
+
+-- Insert sample data into Faculty table
+INSERT INTO Faculty VALUES (101, 'I. Teach', 10);
+INSERT INTO Faculty VALUES (102, 'A. Mentor', 12);
+
+-- Insert sample data into Class table
+INSERT INTO Class VALUES ('CS101', 'Room 1', 101);
+INSERT INTO Class VALUES ('MATH201', 'Room 2', 102);
+INSERT INTO Class VALUES ('BIO101', 'Room 3', 101);
+
+-- Insert sample data into Enrolled table
+INSERT INTO Enrolled VALUES (1, 'CS101');
+INSERT INTO Enrolled VALUES (2, 'MATH201');
+INSERT INTO Enrolled VALUES (3, 'CS101');
+INSERT INTO Enrolled VALUES (3, 'BIO101');
+INSERT INTO Enrolled VALUES (4, 'BIO101');
+
+
+1] Find the names of all Juniors (Levell = JR) who are enrolled in a class taught by I. Teach.
+
+SELECT s.sname
+FROM Student s
+JOIN Enrolled e ON s.snum = e.snum
+JOIN Class c ON e.cname = c.cname
+JOIN Faculty f ON c.fid = f.fid
+WHERE s.levell = 'JR' AND f.fname = 'I. Teach';
+
+2] Find the names of all classes that have five or more students enrolled.
+
+SELECT e.cname
+FROM Enrolled e
+GROUP BY e.cname
+HAVING COUNT(e.snum) >= 5;
+
+3] Print the Levell and the average age of students for that Levell, for each Levell.
+
+SELECT levell, AVG(age) AS average_age
+FROM Student
+GROUP BY levell;
+
+4] Find the names of faculty members who teach in every room in which some class is taught.
+
+SELECT f.fname
+FROM Faculty f
+WHERE NOT EXISTS (
+    SELECT room
+    FROM Class c
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Class c2
+        WHERE c2.room = c.room AND c2.fid = f.fid
+    )
+);
+
+OR
+
+SELECT f.fname
+FROM Faculty f
+WHERE NOT EXISTS (
+    SELECT r.room
+    FROM Class c
+    JOIN Faculty f2 ON c.fid = f2.fid
+    WHERE f2.fid != f.fid
+    EXCEPT
+    SELECT c.room
+    FROM Class c
+    WHERE c.fid = f.fid
+);
+
+
+5] While deleting information of student, store information of only students who have not enrolled for any class in separate table NonEnrolledStudent.
+
+
+6] Write a stored procedure that receives as input the name of a class and displays its number of students enroll in that class.
+
+
+CREATE PROCEDURE GetStudentCountForClass(IN class_name VARCHAR(50))
+BEGIN
+    SELECT COUNT(*) AS student_count
+    FROM Enrolled
+    WHERE cname = class_name;
+END;
+
+1] Find the age of the oldest student who has History majorr.
+
+SELECT MAX(age) AS oldest_age
+FROM Student
+WHERE majorr = 'History';
+
+4] Find the names of students who are not enrolled in any class.
+
+SELECT s.sname
+FROM Student s
+LEFT JOIN Enrolled e ON s.snum = e.snum
+WHERE e.snum IS NULL;
+
+1] Find the age of the oldest student who is enrolled in a course taught by I. Teach.
+
+SELECT MAX(s.age) AS oldest_age
+FROM Student s
+JOIN Enrolled e ON s.snum = e.snum
+JOIN Class c ON e.cname = c.cname
+JOIN Faculty f ON c.fid = f.fid
+WHERE f.fname = 'I. Teach';
+
+2] Find the names of faculty members who teach in every room in which some class is taught. 
+
+SELECT f.fname
+FROM Faculty f
+WHERE NOT EXISTS (
+    SELECT c.room
+    FROM Class c
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Class c2
+        WHERE c2.room = c.room AND c2.fid = f.fid
+    )
+);
+
+3] Print the Levell and the average age of students for that Levell, for all Levells except JR.
+
+SELECT levell, AVG(age) AS average_age
+FROM Student
+WHERE levell != 'JR'
+GROUP BY levell;
+
+1] Find the names of all classes that meet in room R128
+
+SELECT cname
+FROM Class
+WHERE room = 'R128';
+
+2] Find the names of all students who are enrolled in two classes
+
+SELECT s.sname
+FROM Student s
+JOIN Enrolled e ON s.snum = e.snum
+GROUP BY s.snum, s.sname
+HAVING COUNT(DISTINCT e.cname) = 2;
+
+3] Find the names of students who are enrolled in the maximum number of classes.
+
+WITH EnrollCounts AS (
+    SELECT s.sname, COUNT(e.cname) AS class_count
+    FROM Student s
+    JOIN Enrolled e ON s.snum = e.snum
+    GROUP BY s.sname
+)
+SELECT sname
+FROM EnrollCounts
+WHERE class_count = (SELECT MAX(class_count) FROM EnrollCounts);
+
+2] Find the names of faculty members for whom the combined enrolment of the courses that they teach is less than five.

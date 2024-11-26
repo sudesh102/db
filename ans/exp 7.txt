@@ -1,0 +1,138 @@
+//exp 7
+Table Creation
+sql
+Copy code
+-- Create Employees table
+CREATE TABLE Employees (
+    emp_name VARCHAR(50),
+    street VARCHAR(50),
+    city VARCHAR(50),
+    PRIMARY KEY (emp_name)
+);
+
+-- Create Works5 table
+CREATE TABLE Works5 (
+    emp_name VARCHAR(50),
+    company_name VARCHAR(50),
+    salary DECIMAL(10, 2),
+    FOREIGN KEY (emp_name) REFERENCES Employees(emp_name)
+);
+
+-- Create Company5 table
+CREATE TABLE Company5 (
+    company_name VARCHAR(50),
+    city VARCHAR(50),
+    PRIMARY KEY (company_name)
+);
+
+-- Create Manages5 table
+CREATE TABLE Manages5 (
+    emp_name VARCHAR(50),
+    manager_name VARCHAR(50),
+    FOREIGN KEY (emp_name) REFERENCES Employees(emp_name)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert sample data into Employees
+INSERT INTO Employees (emp_name, street, city) VALUES
+('John', '123 Main St', 'New York'),
+('Alice', '456 Oak St', 'Los Angeles'),
+('Bob', '789 Pine St', 'San Francisco');
+
+-- Insert sample data into Works5
+INSERT INTO Works5 (emp_name, company_name, salary) VALUES
+('John', 'TechCorp', 60000),
+('Alice', 'FinanceInc', 70000),
+('Bob', 'Small Bank Corporation', 50000);
+
+-- Insert sample data into Company5
+INSERT INTO Company5 (company_name, city) VALUES
+('TechCorp', 'New York'),
+('FinanceInc', 'Los Angeles'),
+('Small Bank Corporation', 'San Francisco');
+
+-- Insert sample data into Manages5
+INSERT INTO Manages5 (emp_name, manager_name) VALUES
+('John', 'Isaac'),
+('Alice', 'Irene'),
+('Bob', 'Ian');
+Queries
+Display employees with more than 3 years of experience.
+Assuming experience data is part of the Works5 table (using salary as a proxy here):
+
+sql
+Copy code
+SELECT emp_name
+FROM Works5
+WHERE salary > 50000; -- Assumed experience is inferred from salary
+Display names of employees in descending order of salary.
+
+sql
+Copy code
+SELECT emp_name
+FROM Works5
+ORDER BY salary DESC;
+Display average salary of employees for each company.
+
+sql
+Copy code
+SELECT company_name, AVG(salary) AS avg_salary
+FROM Works5
+GROUP BY company_name;
+Display names of employees whose manager’s name starts with 'i' and has at least 3 characters.
+
+sql
+Copy code
+SELECT emp_name
+FROM Manages5
+WHERE manager_name LIKE 'i%' AND LENGTH(manager_name) >= 3;
+Find all employees who work for both a department and a manager.
+Assuming working for both means an entry in both Works5 and Manages5 tables:
+
+sql
+Copy code
+SELECT w.emp_name
+FROM Works5 w
+JOIN Manages5 m ON w.emp_name = m.emp_name;
+Find the employee details whose salary is the same as the average salary of all employees.
+
+sql
+Copy code
+SELECT emp_name, salary
+FROM Works5
+WHERE salary = (SELECT AVG(salary) FROM Works5);
+Create a view of all employees in each department (interpreting company_name as department).
+
+sql
+Copy code
+CREATE VIEW EmployeeDepartmentView AS
+SELECT e.emp_name, e.street, e.city, w.company_name
+FROM Employees e
+JOIN Works5 w ON e.emp_name = w.emp_name;
+Create a stored procedure to reduce the salary of a specific employee.
+
+sql
+Copy code
+CREATE PROCEDURE ReduceSalary(IN employee_name VARCHAR(50), IN reduction DECIMAL(10, 2))
+BEGIN
+    UPDATE Works5
+    SET salary = salary - reduction
+    WHERE emp_name = employee_name;
+END;
+Find all employees in the database who earn more than each employee of "Small Bank Corporation."
+
+sql
+Copy code
+SELECT emp_name 
+FROM Works5
+WHERE salary > ALL (SELECT salary 
+                    FROM Works5 
+                    WHERE company_name = 'Small Bank Corporation');
+Find the company name and their average salary paid to employees.
+
+sql
+Copy code
+SELECT company_name, AVG(salary) AS avg_salary
+FROM Works5
+GROUP BY company_name;

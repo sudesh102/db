@@ -1,0 +1,170 @@
+//exp 17
+
+Table Creation
+sql
+Copy code
+-- Create Customer Table
+CREATE TABLE Customer (
+    c_name VARCHAR(100) PRIMARY KEY,
+    c_phone VARCHAR(15),
+    c_addr VARCHAR(255),
+    c_age INT CHECK (c_age >= 0)
+);
+
+-- Create Packages Table
+CREATE TABLE Packages (
+    p_id INT PRIMARY KEY,
+    p_name VARCHAR(100),
+    p_type VARCHAR(50),
+    p_days INT CHECK (p_days > 0),
+    p_price DECIMAL(10, 2) CHECK (p_price > 0)
+);
+
+-- Create Hotel Table
+CREATE TABLE Hotel (
+    h_name VARCHAR(100) PRIMARY KEY,
+    h_city VARCHAR(100),
+    h_rating DECIMAL(3, 2) CHECK (h_rating >= 0 AND h_rating <= 5)
+);
+
+-- Create Vehicle Table
+CREATE TABLE Vehicle (
+    v_type VARCHAR(100),
+    v_number VARCHAR(20),
+    PRIMARY KEY (v_type, v_number)
+);
+
+-- Create Customer_Package_Info Table
+CREATE TABLE Customer_package_info (
+    c_name VARCHAR(100),
+    c_phone VARCHAR(15),
+    p_id INT,
+    h_rating DECIMAL(3, 2),
+    v_type VARCHAR(100),
+    FOREIGN KEY (c_name) REFERENCES Customer(c_name),
+    FOREIGN KEY (p_id) REFERENCES Packages(p_id),
+    FOREIGN KEY (h_rating) REFERENCES Hotel(h_rating),
+    FOREIGN KEY (v_type) REFERENCES Vehicle(v_type)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Customer table
+INSERT INTO Customer (c_name, c_phone, c_addr, c_age)
+VALUES ('John Doe', '1234567890', '123 Main St, Kolhapur', 30),
+       ('Jane Smith', '0987654321', '456 Elm St, Pune', 28),
+       ('Alice Johnson', '1112223333', '789 Oak St, Kolhapur', 25),
+       ('Bob Brown', '2223334444', '321 Pine St, Mumbai', 40),
+       ('Ideal Customer', '3334445555', '654 Cedar St, Nashik', 35);
+
+-- Insert data into Packages table
+INSERT INTO Packages (p_id, p_name, p_type, p_days, p_price)
+VALUES (1, 'Summer Getaway', 'summer', 5, 3000),
+       (2, 'Winter Wonderland', 'winter', 7, 4000),
+       (3, 'Beach Bliss', 'summer', 10, 6000),
+       (4, 'Adventure Tour', 'adventure', 14, 8000),
+       (5, 'Cultural Escape', 'cultural', 5, 2000);
+
+-- Insert data into Hotel table
+INSERT INTO Hotel (h_name, h_city, h_rating)
+VALUES ('OPAL', 'Kolhapur', 4.5),
+       ('Grand Hotel', 'Pune', 3.8),
+       ('Beach Resort', 'Kolhapur', 4.2),
+       ('Adventure Lodge', 'Mumbai', 4.8);
+
+-- Insert data into Vehicle table
+INSERT INTO Vehicle (v_type, v_number)
+VALUES ('SUV', 'MH12AB1234'),
+       ('Sedan', 'MH12AB5678'),
+       ('Hatchback', 'MH12AB9012');
+
+-- Insert data into Customer_package_info table
+INSERT INTO Customer_package_info (c_name, c_phone, p_id, h_rating, v_type)
+VALUES ('John Doe', '1234567890', 1, 4.5, 'SUV'),
+       ('Jane Smith', '0987654321', 2, 3.8, 'Sedan'),
+       ('Alice Johnson', '1112223333', 3, 4.2, 'Hatchback'),
+       ('Bob Brown', '2223334444', 4, 4.8, 'SUV'),
+       ('Ideal Customer', '3334445555', 5, 4.5, 'Sedan');
+Queries
+Select all hotels in the city "Kolhapur".
+
+sql
+Copy code
+SELECT *
+FROM Hotel
+WHERE h_city = 'Kolhapur';
+Display the details of the guest who booked a room at hotel "OPAL".
+
+sql
+Copy code
+SELECT *
+FROM Customer_package_info
+WHERE h_rating = (SELECT h_rating FROM Hotel WHERE h_name = 'OPAL');
+Display hotel details with descending order of rating.
+
+sql
+Copy code
+SELECT *
+FROM Hotel
+ORDER BY h_rating DESC;
+Find average prices of each package.
+
+sql
+Copy code
+SELECT AVG(p_price) AS average_price
+FROM Packages;
+Display the customer details whose address includes the substring "ich".
+
+sql
+Copy code
+SELECT *
+FROM Customer
+WHERE c_addr LIKE '%ich%';
+Find the customer details who booked a package whose type is the same as the package of customer "ideal".
+
+sql
+Copy code
+SELECT c.*
+FROM Customer c
+JOIN Customer_package_info cpi ON c.c_name = cpi.c_name
+WHERE cpi.p_id IN (
+    SELECT p_id
+    FROM Packages
+    WHERE p_type = (SELECT p_type FROM Packages WHERE p_id IN (
+        SELECT p_id FROM Customer_package_info WHERE c_name = 'Ideal Customer'
+    ))
+);
+Set the price of the package to 5000 whose type is 'summer'.
+
+sql
+Copy code
+UPDATE Packages
+SET p_price = 5000
+WHERE p_type = 'summer';
+Find the average price of each package and those packages having an average price more than 2000.
+
+sql
+Copy code
+SELECT p_type, AVG(p_price) AS average_price
+FROM Packages
+GROUP BY p_type
+HAVING AVG(p_price) > 2000;
+Create a view for packages with customer details.
+
+sql
+Copy code
+CREATE VIEW PackageCustomerView AS
+SELECT p.p_name, c.c_name, c.c_phone, c.c_addr
+FROM Packages p
+JOIN Customer_package_info cpi ON p.p_id = cpi.p_id
+JOIN Customer c ON cpi.c_name = c.c_name;
+Create a stored procedure to reduce the price of a package (user-specified) for a specific type (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReducePackagePrice(IN p_type VARCHAR(50), IN reduction_amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Packages
+    SET p_price = p_price - reduction_amount
+    WHERE p_type = p_type;
+END;

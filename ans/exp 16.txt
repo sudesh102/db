@@ -1,0 +1,143 @@
+//exp 16
+
+Table Creation
+sql
+Copy code
+-- Create Employees Table
+CREATE TABLE Employees (
+    emp_name VARCHAR(100) PRIMARY KEY,
+    street VARCHAR(255),
+    city VARCHAR(100)
+);
+
+-- Create Works5 Table
+CREATE TABLE Works5 (
+    emp_name VARCHAR(100),
+    company_name VARCHAR(100),
+    salary DECIMAL(10, 2),
+    FOREIGN KEY (emp_name) REFERENCES Employees(emp_name)
+);
+
+-- Create Company5 Table
+CREATE TABLE Company5 (
+    company_name VARCHAR(100) PRIMARY KEY,
+    city VARCHAR(100)
+);
+
+-- Create Manages5 Table
+CREATE TABLE Manages5 (
+    emp_name VARCHAR(100),
+    manager_name VARCHAR(100),
+    FOREIGN KEY (emp_name) REFERENCES Employees(emp_name),
+    FOREIGN KEY (manager_name) REFERENCES Employees(emp_name)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Employees table
+INSERT INTO Employees (emp_name, street, city)
+VALUES ('Alice', '123 Elm St', 'New York'),
+       ('Bob', '456 Oak St', 'San Francisco'),
+       ('Charlie', '789 Maple St', 'Los Angeles'),
+       ('David', '101 Pine St', 'Chicago'),
+       ('Eva', '102 Cedar St', 'Seattle');
+
+-- Insert data into Company5 table
+INSERT INTO Company5 (company_name, city)
+VALUES ('TechCorp', 'New York'),
+       ('FinGroup', 'San Francisco'),
+       ('Small Bank Corporation', 'Chicago'),
+       ('HealthInc', 'Los Angeles');
+
+-- Insert data into Works5 table
+INSERT INTO Works5 (emp_name, company_name, salary)
+VALUES ('Alice', 'TechCorp', 60000),
+       ('Bob', 'FinGroup', 80000),
+       ('Charlie', 'Small Bank Corporation', 70000),
+       ('David', 'HealthInc', 75000),
+       ('Eva', 'TechCorp', 90000);
+
+-- Insert data into Manages5 table
+INSERT INTO Manages5 (emp_name, manager_name)
+VALUES ('Bob', 'Alice'),
+       ('Charlie', 'Bob'),
+       ('David', 'Alice'),
+       ('Eva', 'David');
+Queries
+Display name of employees having more than 3 years of experience.
+
+sql
+Copy code
+-- Assuming you have a column for experience in Works5, not defined in the original table.
+-- If the Works5 table has an 'experience' column, the query would look like this:
+SELECT emp_name
+FROM Works5
+WHERE experience > 3;
+Display names of employees in descending order of salary.
+
+sql
+Copy code
+SELECT emp_name
+FROM Works5
+ORDER BY salary DESC;
+Display the average salary of employees for each company.
+
+sql
+Copy code
+SELECT company_name, AVG(salary) AS average_salary
+FROM Works5
+GROUP BY company_name;
+Display names of employees whose manager's name starts with 'i' and has at least 3 characters.
+
+sql
+Copy code
+SELECT emp_name
+FROM Manages5
+WHERE manager_name LIKE 'i%' AND LENGTH(manager_name) >= 3;
+Find all employees who work for both a department and a manager.
+
+sql
+Copy code
+SELECT DISTINCT e.emp_name
+FROM Employees e
+JOIN Works5 w ON e.emp_name = w.emp_name
+JOIN Manages5 m ON e.emp_name = m.emp_name;
+Find employee details whose salary is the same as the average salary of all employees.
+
+sql
+Copy code
+SELECT *
+FROM Works5
+WHERE salary = (SELECT AVG(salary) FROM Works5);
+Create a view of all employees in each department.
+
+sql
+Copy code
+CREATE VIEW EmployeeDepartmentView AS
+SELECT e.emp_name, w.company_name
+FROM Employees e
+JOIN Works5 w ON e.emp_name = w.emp_name;
+Create a stored procedure to reduce the salary of an employee (user-specified) for a specific employee (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceEmployeeSalary(IN emp_name VARCHAR(100), IN amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Works5
+    SET salary = salary - amount
+    WHERE emp_name = emp_name;
+END;
+Find all employees in the database who earn more than each employee of Small Bank Corporation.
+
+sql
+Copy code
+SELECT emp_name
+FROM Works5
+WHERE salary > (SELECT MAX(salary) FROM Works5 WHERE company_name = 'Small Bank Corporation');
+Find company name and their average salary paid to employees.
+
+sql
+Copy code
+SELECT w.company_name, AVG(w.salary) AS average_salary
+FROM Works5 w
+GROUP BY w.company_name;

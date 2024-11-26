@@ -1,0 +1,158 @@
+//exp 11
+Table Creation
+sql
+Copy code
+-- Create Employee4 Table
+CREATE TABLE Employee4 (
+    eid INT PRIMARY KEY,
+    ename VARCHAR(100),
+    address VARCHAR(255),
+    salary DECIMAL(10, 2) CHECK (salary > 500)
+);
+
+-- Create Department4 Table
+CREATE TABLE Department4 (
+    deptid INT PRIMARY KEY,
+    dname VARCHAR(100),
+    no_of_emp INT,
+    location VARCHAR(100)
+);
+
+-- Create Worksfor4 Table
+CREATE TABLE Worksfor4 (
+    eid INT,
+    deptid INT,
+    experience INT,
+    FOREIGN KEY (eid) REFERENCES Employee4(eid),
+    FOREIGN KEY (deptid) REFERENCES Department4(deptid)
+);
+
+-- Create Project4 Table
+CREATE TABLE Project4 (
+    pname VARCHAR(100) PRIMARY KEY,
+    technology VARCHAR(100),
+    duration INT
+);
+
+-- Create Emp_proj4 Table
+CREATE TABLE Emp_proj4 (
+    eid INT,
+    role VARCHAR(100),
+    pname VARCHAR(100),
+    FOREIGN KEY (eid) REFERENCES Employee4(eid),
+    FOREIGN KEY (pname) REFERENCES Project4(pname)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Employee4 table
+INSERT INTO Employee4 (eid, ename, address, salary)
+VALUES (1, 'John Doe', '123 Main St', 1200),
+       (2, 'Jane Smith', '456 Park Ave', 3000),
+       (3, 'Michael Brown', '789 Oak St', 800),
+       (4, 'Emily Davis', '222 Elm St', 2500);
+
+-- Insert data into Department4 table
+INSERT INTO Department4 (deptid, dname, no_of_emp, location)
+VALUES (101, 'HR', 10, 'New York'),
+       (102, 'IT', 20, 'San Francisco'),
+       (103, 'Finance', 15, 'Chicago');
+
+-- Insert data into Worksfor4 table
+INSERT INTO Worksfor4 (eid, deptid, experience)
+VALUES (1, 101, 5),
+       (2, 102, 2),
+       (3, 103, 7),
+       (4, 102, 4);
+
+-- Insert data into Project4 table
+INSERT INTO Project4 (pname, technology, duration)
+VALUES ('P93', 'Python', 2),
+       ('MobileApp', 'React', 1),
+       ('MachineLearning', 'Python', 3),
+       ('LongTermProj', 'Java', 12);
+
+-- Insert data into Emp_proj4 table
+INSERT INTO Emp_proj4 (eid, role, pname)
+VALUES (1, 'Developer', 'P93'),
+       (2, 'Manager', 'MobileApp'),
+       (3, 'Tester', 'MachineLearning'),
+       (4, 'Lead', 'LongTermProj');
+Queries
+Display name of employees having more than 3 years of experience.
+
+sql
+Copy code
+SELECT e.ename
+FROM Employee4 e
+JOIN Worksfor4 w ON e.eid = w.eid
+WHERE w.experience > 3;
+Display names of employees in descending order of salary.
+
+sql
+Copy code
+SELECT ename
+FROM Employee4
+ORDER BY salary DESC;
+Display average salary of employees in each department.
+
+sql
+Copy code
+SELECT d.dname, AVG(e.salary) AS avg_salary
+FROM Employee4 e
+JOIN Worksfor4 w ON e.eid = w.eid
+JOIN Department4 d ON w.deptid = d.deptid
+GROUP BY d.dname;
+Display names of employees whose project name starts with 'm' and has at least 4 characters.
+
+sql
+Copy code
+SELECT e.ename
+FROM Employee4 e
+JOIN Emp_proj4 ep ON e.eid = ep.eid
+WHERE ep.pname LIKE 'm%' AND LENGTH(ep.pname) >= 4;
+Find all employees who work for both department and project.
+
+sql
+Copy code
+SELECT e.ename
+FROM Employee4 e
+JOIN Worksfor4 w ON e.eid = w.eid
+JOIN Emp_proj4 ep ON e.eid = ep.eid;
+Display names of projects whose duration is between 1 to 3 years.
+
+sql
+Copy code
+SELECT pname
+FROM Project4
+WHERE duration BETWEEN 1 AND 3;
+Find the employee details whose salary is the same as the average salary of all employees.
+
+sql
+Copy code
+SELECT *
+FROM Employee4
+WHERE salary = (SELECT AVG(salary) FROM Employee4);
+Update the technology of projects to "Java" for project "P93".
+
+sql
+Copy code
+UPDATE Project4
+SET technology = 'Java'
+WHERE pname = 'P93';
+Delete all projects whose duration is more than 10 years.
+
+sql
+Copy code
+DELETE FROM Project4
+WHERE duration > 10;
+Create a stored procedure to display employee details for a specific employee (i.e. user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE GetEmployeeDetails(IN emp_id INT)
+BEGIN
+    SELECT *
+    FROM Employee4
+    WHERE eid = emp_id;
+END;

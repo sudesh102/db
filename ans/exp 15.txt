@@ -1,0 +1,165 @@
+//exp 15
+
+Table Creation
+sql
+Copy code
+-- Create Customers Table
+CREATE TABLE Customers (
+    custid INT PRIMARY KEY,
+    custname VARCHAR(100),
+    address VARCHAR(255),
+    city VARCHAR(100),
+    phoneno VARCHAR(15)
+);
+
+-- Create Orders Table
+CREATE TABLE Orders (
+    orderno INT PRIMARY KEY,
+    qty INT
+);
+
+-- Create Cust_places_order5 Table
+CREATE TABLE Cust_places_order5 (
+    custid INT,
+    orderno INT,
+    orderdate DATE,
+    FOREIGN KEY (custid) REFERENCES Customers(custid),
+    FOREIGN KEY (orderno) REFERENCES Orders(orderno)
+);
+
+-- Create Item5 Table
+CREATE TABLE Item5 (
+    icode INT PRIMARY KEY,
+    iname VARCHAR(100),
+    rate DECIMAL(10, 2) CHECK (rate > 500)  -- Constraint: rate should be greater than 500
+);
+
+-- Create Order_item5 Table
+CREATE TABLE Order_item5 (
+    orderno INT,
+    icode INT,
+    FOREIGN KEY (orderno) REFERENCES Orders(orderno),
+    FOREIGN KEY (icode) REFERENCES Item5(icode)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Customers table
+INSERT INTO Customers (custid, custname, address, city, phoneno)
+VALUES (1, 'Alice', '123 Main St', 'Kolhapur', '1234567890'),
+       (2, 'Bob', '456 Oak St', 'Pune', '0987654321'),
+       (3, 'Charlie', '789 Pine St', 'Kolhapur', '1112233445'),
+       (4, 'David', '101 Maple St', 'Mumbai', '2233445566');
+
+-- Insert data into Orders table
+INSERT INTO Orders (orderno, qty)
+VALUES (201, 5),
+       (202, 10),
+       (203, 3),
+       (204, 8);
+
+-- Insert data into Cust_places_order5 table
+INSERT INTO Cust_places_order5 (custid, orderno, orderdate)
+VALUES (1, 201, '2024-01-01'),
+       (1, 202, '2024-02-15'),
+       (2, 203, '2024-03-10'),
+       (3, 204, '2024-04-20');
+
+-- Insert data into Item5 table
+INSERT INTO Item5 (icode, iname, rate)
+VALUES (301, 'Widget', 600),
+       (302, 'Gadget', 700),
+       (303, 'Doodad', 800),
+       (304, 'Thingamajig', 400);  -- This should fail due to rate constraint
+
+-- Insert data into Order_item5 table
+INSERT INTO Order_item5 (orderno, icode)
+VALUES (201, 301),
+       (202, 302),
+       (203, 301),
+       (204, 303);
+Queries
+Set the rate to 250 for item number 301.
+
+sql
+Copy code
+UPDATE Item5
+SET rate = 250
+WHERE icode = 301;  -- This will fail due to rate constraint
+Display order details by ascending quantity of orders.
+
+sql
+Copy code
+SELECT *
+FROM Orders
+ORDER BY qty ASC;
+Display item number and rate of items having order number 201.
+
+sql
+Copy code
+SELECT oi.icode, i.rate
+FROM Order_item5 oi
+JOIN Item5 i ON oi.icode = i.icode
+WHERE oi.orderno = 201;
+Display order details placed by customers who live in city 'Kolhapur'.
+
+sql
+Copy code
+SELECT o.*
+FROM Orders o
+JOIN Cust_places_order5 co ON o.orderno = co.orderno
+JOIN Customers c ON co.custid = c.custid
+WHERE c.city = 'Kolhapur';
+Display customer names that have chosen items having maximum rate.
+
+sql
+Copy code
+SELECT DISTINCT c.custname
+FROM Customers c
+JOIN Cust_places_order5 co ON c.custid = co.custid
+JOIN Order_item5 oi ON co.orderno = oi.orderno
+JOIN Item5 i ON oi.icode = i.icode
+WHERE i.rate = (SELECT MAX(rate) FROM Item5);
+Display customer names whose city name starts with 'd' and ends with 't' and has at least 4 characters.
+
+sql
+Copy code
+SELECT custname
+FROM Customers
+WHERE city LIKE 'd%t' AND LENGTH(city) >= 4;
+Display average quantity for each order.
+
+sql
+Copy code
+SELECT orderno, AVG(qty) AS average_qty
+FROM Orders
+GROUP BY orderno;
+Find the customer name who orders an item whose name is the same as the order of the item whose rate is greater than 700.
+
+sql
+Copy code
+SELECT DISTINCT c.custname
+FROM Customers c
+JOIN Cust_places_order5 co ON c.custid = co.custid
+JOIN Order_item5 oi ON co.orderno = oi.orderno
+JOIN Item5 i ON oi.icode = i.icode
+WHERE i.iname = (SELECT iname FROM Item5 WHERE rate > 700);
+Create a view of customers along with order details.
+
+sql
+Copy code
+CREATE VIEW CustomerOrderView AS
+SELECT c.custid, c.custname, c.city, o.orderno, o.qty, co.orderdate
+FROM Customers c
+JOIN Cust_places_order5 co ON c.custid = co.custid
+JOIN Orders o ON co.orderno = o.orderno;
+Create a stored procedure to display the rate of an item for a specific item (i.e., user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE GetItemRate(IN item_id INT)
+BEGIN
+    SELECT rate
+    FROM Item5
+    WHERE icode = item_id;
+END;

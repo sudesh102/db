@@ -1,0 +1,173 @@
+//exp 4
+Create the Tables:
+sql
+Copy code
+-- Create Patient table
+CREATE TABLE Patient (
+    p_id INT PRIMARY KEY,
+    p_name VARCHAR(255),
+    p_age INT,
+    p_addr VARCHAR(255),
+    p_phone VARCHAR(15)
+);
+
+-- Create Doctor table
+CREATE TABLE Doctor (
+    D_id INT PRIMARY KEY,
+    D_name VARCHAR(255),
+    D_speciality VARCHAR(255),
+    D_phone VARCHAR(15)
+);
+
+-- Create Appointment table
+CREATE TABLE Appointment (
+    P_id INT,
+    D_id INT,
+    Date DATE,
+    time TIME,
+    PRIMARY KEY (P_id, D_id, Date),
+    FOREIGN KEY (P_id) REFERENCES Patient(p_id),
+    FOREIGN KEY (D_id) REFERENCES Doctor(D_id)
+);
+
+-- Create Disease table
+CREATE TABLE Disease (
+    Disease_no INT PRIMARY KEY,
+    Disease_name VARCHAR(255),
+    symptoms TEXT
+);
+
+-- Create Patient_Record table
+CREATE TABLE Patient_Record (
+    p_id INT,
+    D_id INT,
+    Disease_name VARCHAR(255),
+    medicine VARCHAR(255),
+    test VARCHAR(255),
+    PRIMARY KEY (p_id, D_id, Disease_name),
+    FOREIGN KEY (p_id) REFERENCES Patient(p_id),
+    FOREIGN KEY (D_id) REFERENCES Doctor(D_id),
+    FOREIGN KEY (Disease_name) REFERENCES Disease(Disease_name)
+);
+2. Insert Sample Values:
+sql
+Copy code
+-- Insert values into Patient table
+INSERT INTO Patient (p_id, p_name, p_age, p_addr, p_phone)
+VALUES 
+(1, 'John Doe', 45, 'New York', '1234567890'),
+(2, 'Jane Smith', 34, 'Los Angeles', '0987654321'),
+(3, 'Emily Davis', 50, 'Chicago', '1122334455'),
+(4, 'Michael Brown', 29, 'Houston', '6677889900');
+
+-- Insert values into Doctor table
+INSERT INTO Doctor (D_id, D_name, D_speciality, D_phone)
+VALUES 
+(1, 'Dr. Sarah Williams', 'Cardiology', '5551112222'),
+(2, 'Dr. Sharad Mehta', 'Dermatology', '5553334444'),
+(3, 'Dr. Alice Johnson', 'Pulmonology', '5555556666');
+
+-- Insert values into Appointment table
+INSERT INTO Appointment (P_id, D_id, Date, time)
+VALUES 
+(1, 1, '2024-10-01', '09:00:00'),
+(2, 2, '2024-10-02', '10:00:00'),
+(3, 3, '2024-10-03', '11:00:00');
+
+-- Insert values into Disease table
+INSERT INTO Disease (Disease_no, Disease_name, symptoms)
+VALUES 
+(1, 'Asthma', 'Shortness of breath, chest tightness, wheezing'),
+(2, 'Cold', 'Sneezing, runny nose, sore throat'),
+(3, 'Hypertension', 'High blood pressure, headache');
+
+-- Insert values into Patient_Record table
+INSERT INTO Patient_Record (p_id, D_id, Disease_name, medicine, test)
+VALUES 
+(1, 3, 'Asthma', 'Inhaler', 'Pulmonary function test'),
+(2, 2, 'Cold', 'Antihistamines', 'Nasal swab'),
+(3, 1, 'Hypertension', 'ACE inhibitors', 'Blood pressure test');
+3. Queries:
+Display all patient details by seniority (age).
+
+sql
+Copy code
+SELECT * 
+FROM Patient 
+ORDER BY p_age DESC;
+Display the patients who are suffering from ASTHMA.
+
+sql
+Copy code
+SELECT p.p_name, p.p_age, p.p_addr, p.p_phone
+FROM Patient p
+JOIN Patient_Record r ON p.p_id = r.p_id
+WHERE r.Disease_name = 'Asthma';
+Count the number of doctors for each specialty.
+
+sql
+Copy code
+SELECT D_speciality, COUNT(*) AS num_doctors
+FROM Doctor
+GROUP BY D_speciality;
+Display doctor names along with the total number of patients they have appointed.
+
+sql
+Copy code
+SELECT d.D_name, COUNT(a.P_id) AS num_patients
+FROM Doctor d
+LEFT JOIN Appointment a ON d.D_id = a.D_id
+GROUP BY d.D_name;
+Display disease details where the name starts with 'C' and has at least 4 characters.
+
+sql
+Copy code
+SELECT * 
+FROM Disease 
+WHERE Disease_name LIKE 'C%' AND LENGTH(Disease_name) >= 4;
+Set medicine 'xyz' and test 'abc' for disease ASTHMA.
+
+sql
+Copy code
+UPDATE Patient_Record
+SET medicine = 'xyz', test = 'abc'
+WHERE Disease_name = 'Asthma';
+Find the number of doctors handling each disease, and display only those where the count is more than 100.
+
+sql
+Copy code
+SELECT r.Disease_name, COUNT(DISTINCT r.D_id) AS num_doctors
+FROM Patient_Record r
+GROUP BY r.Disease_name
+HAVING COUNT(DISTINCT r.D_id) > 100;
+Find the patient name who appointed the doctor whose speciality is the same as the doctor "Sharad".
+
+sql
+Copy code
+SELECT p.p_name
+FROM Patient p
+JOIN Appointment a ON p.p_id = a.P_id
+JOIN Doctor d1 ON a.D_id = d1.D_id
+JOIN Doctor d2 ON d1.D_speciality = d2.D_speciality
+WHERE d2.D_name = 'Sharad Mehta';
+Create a view of details of patients and their diseases.
+
+sql
+Copy code
+CREATE VIEW PatientDiseaseDetails AS
+SELECT p.p_id, p.p_name, p.p_age, p.p_addr, p.p_phone, r.Disease_name, r.medicine, r.test
+FROM Patient p
+JOIN Patient_Record r ON p.p_id = r.p_id;
+Create a stored procedure to display details of doctors for a specific disease (user-specified).
+
+sql
+Copy code
+DELIMITER //
+CREATE PROCEDURE GetDoctorsByDisease(IN diseaseName VARCHAR(255))
+BEGIN
+    SELECT d.D_name, d.D_speciality, d.D_phone
+    FROM Doctor d
+    JOIN Patient_Record r ON d.D_id = r.D_id
+    WHERE r.Disease_name = diseaseName;
+END //
+DELIMITER ;

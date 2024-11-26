@@ -1,0 +1,144 @@
+//exp 26
+
+
+Table Creation
+sql
+Copy code
+-- Create Book info Table
+CREATE TABLE Book_info (
+    bookid INT PRIMARY KEY,
+    bname VARCHAR(100),
+    bauthor VARCHAR(100),
+    price DECIMAL(10, 2) CHECK (price > 0), -- Constraint for price
+    edition VARCHAR(50),
+    publication VARCHAR(100),
+    pur_date DATE
+);
+
+-- Create Student Table
+CREATE TABLE Student (
+    lib_car_num INT PRIMARY KEY,
+    stud_name VARCHAR(100),
+    class VARCHAR(50),
+    branch VARCHAR(50),
+    roll_no INT
+);
+
+-- Create Issue Table
+CREATE TABLE Issue_table (
+    issue_date DATE,
+    sub_date DATE,
+    bookid INT,
+    lib_car_num INT,
+    due DECIMAL(10, 2),
+    PRIMARY KEY (lib_car_num, bookid),
+    FOREIGN KEY (bookid) REFERENCES Book_info(bookid),
+    FOREIGN KEY (lib_car_num) REFERENCES Student(lib_car_num)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Book_info table
+INSERT INTO Book_info (bookid, bname, bauthor, price, edition, publication, pur_date)
+VALUES (1, 'Data Structures', 'Author A', 500.00, '1st', 'Publisher A', '2022-01-10'),
+       (2, 'Database Systems', 'Author B', 600.00, '2nd', 'Publisher B', '2021-05-15'),
+       (3, 'Operating Systems', 'Author C', 450.00, '3rd', 'Publisher C', '2023-03-20'),
+       (4, 'Discrete Mathematics', 'Author D', 300.00, '1st', 'Publisher D', '2020-07-01'),
+       (5, 'Algorithms', 'Author A', 700.00, '1st', 'Publisher E', '2022-08-30'),
+       (6, 'Computer Networks', 'Author F', 0.00, '1st', 'Publisher F', '2022-09-25'); -- Invalid entry for price
+
+-- Insert data into Student table
+INSERT INTO Student (lib_car_num, stud_name, class, branch, roll_no)
+VALUES (1, 'Alice', 'B.Sc', 'Computer Science', 101),
+       (2, 'Bob', 'B.Com', 'Commerce', 102),
+       (3, 'Charlie', 'B.Sc', 'Mathematics', 103),
+       (4, 'David', 'B.Tech', 'Electrical', 104);
+
+-- Insert data into Issue_table
+INSERT INTO Issue_table (issue_date, sub_date, bookid, lib_car_num, due)
+VALUES ('2024-01-15', '2024-01-30', 1, 1, 50.00),
+       ('2024-01-20', '2024-02-05', 2, 2, 100.00),
+       ('2024-01-22', '2024-02-15', 3, 3, 75.00),
+       ('2024-01-25', '2024-02-10', 4, 4, 25.00);
+Queries
+Find the details of the books issued to the library card number 1.
+
+sql
+Copy code
+SELECT b.*
+FROM Book_info b
+JOIN Issue_table i ON b.bookid = i.bookid
+WHERE i.lib_car_num = 1;
+Give all the information about student and the book issued with ascending order of library card number.
+
+sql
+Copy code
+SELECT s.*, b.*
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+JOIN Book_info b ON i.bookid = b.bookid
+ORDER BY s.lib_car_num ASC;
+Give the maximum dues that student has to pay from all students along with his name.
+
+sql
+Copy code
+SELECT s.stud_name, MAX(i.due) AS max_due
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+GROUP BY s.stud_name
+ORDER BY max_due DESC
+LIMIT 1; -- Get the student with the maximum dues
+Give class name along with the total number of students in it.
+
+sql
+Copy code
+SELECT class, COUNT(*) AS total_students
+FROM Student
+GROUP BY class;
+Find book details whose name starts with 'd' and has at least 3 characters.
+
+sql
+Copy code
+SELECT *
+FROM Book_info
+WHERE bname LIKE 'd%' AND LENGTH(bname) >= 3;
+Display average price of each book.
+
+sql
+Copy code
+SELECT AVG(price) AS average_price
+FROM Book_info;
+Create a view of student along with issue details.
+
+sql
+Copy code
+CREATE VIEW Student_Issue_Details AS
+SELECT s.*, i.*
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num;
+Find average price for each author and display those authors who have an average price of more than 500.
+
+sql
+Copy code
+SELECT bauthor, AVG(price) AS average_price
+FROM Book_info
+GROUP BY bauthor
+HAVING AVG(price) > 500;
+Display student names whose due is greater than the average due of the library.
+
+sql
+Copy code
+SELECT s.stud_name
+FROM Student s
+JOIN Issue_table i ON s.lib_car_num = i.lib_car_num
+WHERE i.due > (SELECT AVG(due) FROM Issue_table);
+Create stored procedure to reduce the price of the book (user-specified) for a specific book (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE ReduceBookPrice(IN book_id INT, IN reduction_amount DECIMAL(10, 2))
+BEGIN
+    UPDATE Book_info
+    SET price = price - reduction_amount
+    WHERE bookid = book_id;
+END;

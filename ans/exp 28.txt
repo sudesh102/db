@@ -1,0 +1,177 @@
+//exp 28
+
+Table Creation
+sql
+Copy code
+-- Create Book Table
+CREATE TABLE Book (
+    bookno INT PRIMARY KEY,
+    bookname VARCHAR(100),
+    author VARCHAR(100),
+    title VARCHAR(100),
+    price DECIMAL(10, 2) CHECK (price > 250), -- Constraint for price
+    pages INT
+);
+
+-- Create BookOrder Table
+CREATE TABLE BookOrder (
+    vendorno INT,
+    bookno INT,
+    orderno INT,
+    copies INT,
+    orderdate DATE,
+    PRIMARY KEY (vendorno, bookno, orderno),
+    FOREIGN KEY (vendorno) REFERENCES Vendor(vendorno),
+    FOREIGN KEY (bookno) REFERENCES Book(bookno)
+);
+
+-- Create Vendor Table
+CREATE TABLE Vendor (
+    vendorno INT PRIMARY KEY,
+    vendorname VARCHAR(100)
+);
+
+-- Create Member Table
+CREATE TABLE Member (
+    borrowno INT PRIMARY KEY,
+    name VARCHAR(100),
+    address VARCHAR(255)
+);
+
+-- Create BookIssue Table
+CREATE TABLE BookIssue (
+    bookno INT,
+    borrowno INT,
+    issuedate DATE,
+    PRIMARY KEY (bookno, borrowno),
+    FOREIGN KEY (bookno) REFERENCES Book(bookno),
+    FOREIGN KEY (borrowno) REFERENCES Member(borrowno)
+);
+
+-- Create BookReturn Table
+CREATE TABLE BookReturn (
+    bookno INT,
+    borrowno INT,
+    returndate DATE,
+    PRIMARY KEY (bookno, borrowno),
+    FOREIGN KEY (bookno) REFERENCES Book(bookno),
+    FOREIGN KEY (borrowno) REFERENCES Member(borrowno)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Vendor table
+INSERT INTO Vendor (vendorno, vendorname)
+VALUES (1, 'Vendor A'),
+       (2, 'Vendor B'),
+       (3, 'Vendor C');
+
+-- Insert data into Book table
+INSERT INTO Book (bookno, bookname, author, title, price, pages)
+VALUES (101, 'Book K1', 'Author A', 'Title A', 350.00, 400),
+       (102, 'Book K2', 'Author B', 'Title B', 700.00, 300),
+       (103, 'Book D', 'Author C', 'Title C', 450.00, 250),
+       (104, 'Book K3', 'Author D', 'Title D', 800.00, 500),
+       (105, 'Book E', 'Author E', 'Title E', 600.00, 600),
+       (106, 'Book F', 'Author F', 'Title F', 200.00, 150); -- This entry violates the price constraint
+
+-- Insert data into BookOrder table
+INSERT INTO BookOrder (vendorno, bookno, orderno, copies, orderdate)
+VALUES (1, 101, 201, 10, '2024-10-01'),
+       (1, 102, 202, 5, '2024-10-02'),
+       (2, 103, 203, 15, '2024-10-03'),
+       (3, 104, 204, 8, '2024-10-04'),
+       (2, 105, 205, 12, '2024-10-05');
+
+-- Insert data into Member table
+INSERT INTO Member (borrowno, name, address)
+VALUES (1, 'Member A', 'Address A'),
+       (2, 'Member B', 'Address B'),
+       (3, 'Member C', 'Address C');
+
+-- Insert data into BookIssue table
+INSERT INTO BookIssue (bookno, borrowno, issuedate)
+VALUES (101, 1, '2024-10-06'),
+       (102, 2, '2024-10-07');
+
+-- Insert data into BookReturn table
+INSERT INTO BookReturn (bookno, borrowno, returndate)
+VALUES (101, 1, '2024-10-15'),
+       (102, 2, '2024-10-14');
+Queries
+Display all vendor names in descending order of the number of copies.
+
+sql
+Copy code
+SELECT v.vendorname, SUM(b.copies) AS total_copies
+FROM Vendor v
+JOIN BookOrder b ON v.vendorno = b.vendorno
+GROUP BY v.vendorname
+ORDER BY total_copies DESC;
+Display member names of members having both membership and issued a book.
+
+sql
+Copy code
+SELECT DISTINCT m.name
+FROM Member m
+JOIN BookIssue bi ON m.borrowno = bi.borrowno;
+Display the average price of each book.
+
+sql
+Copy code
+SELECT AVG(price) AS average_price
+FROM Book;
+Display names of books whose price is greater than 700.
+
+sql
+Copy code
+SELECT bookname
+FROM Book
+WHERE price > 700;
+Display book details having names starting with 'k' and having at least 4 characters.
+
+sql
+Copy code
+SELECT *
+FROM Book
+WHERE bookname LIKE 'K%' AND LENGTH(bookname) >= 4;
+Set price to 300 when pages are more than 300.
+
+sql
+Copy code
+UPDATE Book
+SET price = 300
+WHERE pages > 300;
+Find the average price of each book, and display those books having an average price more than 500.
+
+sql
+Copy code
+SELECT bookno, AVG(price) AS average_price
+FROM Book
+GROUP BY bookno
+HAVING AVG(price) > 500;
+Find all book numbers whose book order copies are greater than the average number of copies of each book.
+
+sql
+Copy code
+SELECT bookno
+FROM BookOrder
+WHERE copies > (SELECT AVG(copies) FROM BookOrder);
+Create a view of book names by their issue date.
+
+sql
+Copy code
+CREATE VIEW Book_Issue_View AS
+SELECT b.bookname, bi.issuedate
+FROM Book b
+JOIN BookIssue bi ON b.bookno = bi.bookno;
+Create a stored procedure to remove some number of book copies (user-specified) from a specific book (user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE RemoveBookCopies(IN book_number INT, IN copies_to_remove INT)
+BEGIN
+    UPDATE BookOrder
+    SET copies = copies - copies_to_remove
+    WHERE bookno = book_number AND copies >= copies_to_remove;
+END;

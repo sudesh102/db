@@ -1,0 +1,168 @@
+//exp 14
+
+Table Creation
+sql
+Copy code
+-- Create Employee Table
+CREATE TABLE Employee (
+    eid INT PRIMARY KEY,
+    ename VARCHAR(100),
+    address VARCHAR(255),
+    salary DECIMAL(10, 2) CHECK (salary > 500)  -- Constraint: salary should be greater than 500
+);
+
+-- Create Department Table
+CREATE TABLE Department (
+    deptid INT PRIMARY KEY,
+    dname VARCHAR(100),
+    no_of_emp INT,
+    location VARCHAR(100)
+);
+
+-- Create Worksfor Table
+CREATE TABLE Worksfor (
+    eid INT,
+    deptid INT,
+    experience INT,
+    FOREIGN KEY (eid) REFERENCES Employee(eid),
+    FOREIGN KEY (deptid) REFERENCES Department(deptid)
+);
+
+-- Create Project Table
+CREATE TABLE Project (
+    pname VARCHAR(100),
+    technology VARCHAR(100),
+    duration INT  -- Duration in years
+);
+
+-- Create Emp_proj Table
+CREATE TABLE Emp_proj (
+    eid INT,
+    role VARCHAR(50),
+    pname VARCHAR(100),
+    FOREIGN KEY (eid) REFERENCES Employee(eid),
+    FOREIGN KEY (pname) REFERENCES Project(pname)
+);
+Sample Data Insertion
+sql
+Copy code
+-- Insert data into Employee table
+INSERT INTO Employee (eid, ename, address, salary)
+VALUES (1, 'Alice', '123 Main St', 700),
+       (2, 'Bob', '456 Oak St', 800),
+       (3, 'Charlie', '789 Pine St', 600),
+       (4, 'David', '101 Maple St', 1500),
+       (5, 'Eve', '202 Birch St', 1200),
+       (6, 'Frank', '303 Cedar St', 400);  -- This should fail due to salary constraint
+
+-- Insert data into Department table
+INSERT INTO Department (deptid, dname, no_of_emp, location)
+VALUES (1, 'HR', 15, 'New York'),
+       (2, 'IT', 25, 'San Francisco'),
+       (3, 'Finance', 5, 'Chicago'),
+       (4, 'Marketing', 12, 'Los Angeles');
+
+-- Insert data into Worksfor table
+INSERT INTO Worksfor (eid, deptid, experience)
+VALUES (1, 1, 3),
+       (2, 2, 5),
+       (3, 1, 2),
+       (4, 3, 4),
+       (5, 2, 1);
+
+-- Insert data into Project table
+INSERT INTO Project (pname, technology, duration)
+VALUES ('ProjectX', 'Java', 2),
+       ('ProjectY', 'Python', 3),
+       ('ProjectZ', 'C++', 5),
+       ('P93', 'Java', 1);
+
+-- Insert data into Emp_proj table
+INSERT INTO Emp_proj (eid, role, pname)
+VALUES (1, 'Manager', 'ProjectX'),
+       (2, 'Developer', 'ProjectY'),
+       (3, 'Tester', 'ProjectX'),
+       (4, 'Manager', 'P93'),
+       (5, 'Developer', 'ProjectY');
+Queries
+Display names of employees with descending order of salary.
+
+sql
+Copy code
+SELECT ename
+FROM Employee
+ORDER BY salary DESC;
+Display average salary of employees in each department.
+
+sql
+Copy code
+SELECT d.dname, AVG(e.salary) AS average_salary
+FROM Department d
+JOIN Worksfor w ON d.deptid = w.deptid
+JOIN Employee e ON w.eid = e.eid
+GROUP BY d.dname;
+Display names of employees whose project name starts with 'm' and has at least 4 characters.
+
+sql
+Copy code
+SELECT DISTINCT e.ename
+FROM Employee e
+JOIN Emp_proj ep ON e.eid = ep.eid
+WHERE ep.pname LIKE 'm%' AND LENGTH(ep.pname) >= 4;
+Find all employees who work for both department and project.
+
+sql
+Copy code
+SELECT DISTINCT e.ename
+FROM Employee e
+JOIN Worksfor w ON e.eid = w.eid
+JOIN Emp_proj ep ON e.eid = ep.eid;
+Display names of projects whose duration is between 1 to 3 years.
+
+sql
+Copy code
+SELECT pname
+FROM Project
+WHERE duration BETWEEN 1 AND 3;
+Count the number of employees in each department and display those departments that have at least 10 employees.
+
+sql
+Copy code
+SELECT d.dname, COUNT(w.eid) AS employee_count
+FROM Department d
+JOIN Worksfor w ON d.deptid = w.deptid
+GROUP BY d.dname
+HAVING COUNT(w.eid) >= 10;
+Find the employee details whose salary is the same as the average salary of all employees.
+
+sql
+Copy code
+SELECT *
+FROM Employee
+WHERE salary = (SELECT AVG(salary) FROM Employee);
+Update the technology of projects to "Java" of project "P93".
+
+sql
+Copy code
+UPDATE Project
+SET technology = 'Java'
+WHERE pname = 'P93';
+Create a view of all employees in each department.
+
+sql
+Copy code
+CREATE VIEW EmployeeDepartmentView AS
+SELECT e.eid, e.ename, d.dname
+FROM Employee e
+JOIN Worksfor w ON e.eid = w.eid
+JOIN Department d ON w.deptid = d.deptid;
+Create a stored procedure to remove some number of employees (i.e. user-specified) from a specific department (i.e. user-specified).
+
+sql
+Copy code
+CREATE PROCEDURE RemoveEmployees(IN dept_id INT, IN num_employees INT)
+BEGIN
+    DELETE FROM Worksfor
+    WHERE deptid = dept_id
+    LIMIT num_employees;  -- Note: LIMIT might not be supported in all SQL dialects
+END;
